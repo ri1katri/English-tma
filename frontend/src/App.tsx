@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react'
-import {
+import { useEffect, useState } from 'react'
+import type {
   DashboardStats,
   SystemDictionaryDetail,
   SystemDictionarySummary,
@@ -7,6 +7,9 @@ import {
   UserDictionarySummary,
   WordSearchResult,
 } from './types'
+
+// Явный адрес бэкенда на Render (чтобы запросы с Vercel шли точно на API)
+const API_BASE = 'https://english-tma-api.onrender.com'
 
 interface PlacementQuestion {
   id: number
@@ -25,29 +28,25 @@ interface PlacementResult {
 }
 
 export default function App() {
-  const [tab, setTab] = useState<'search' | 'my' | 'catalog' | 'learning'>('search')
+  const [tab, setTab] = useState<'search' | 'my' | 'catalog'>('search')
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<WordSearchResult | null>(null)
   const [notFoundQuery, setNotFoundQuery] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  // Данные профиля и дашборда
   const [dashboard, setDashboard] = useState<DashboardStats | null>(null)
   const [userLevel, setUserLevel] = useState<string | null>(null)
 
-  // Словари
   const [myDictionaries, setMyDictionaries] = useState<UserDictionarySummary[]>([])
   const [catalog, setCatalog] = useState<SystemDictionarySummary[]>([])
   const [selectedMyDict, setSelectedMyDict] = useState<UserDictionaryDetail | null>(null)
   const [selectedSysDict, setSelectedSysDict] = useState<SystemDictionaryDetail | null>(null)
 
-  // Модалка добавления слова в словарь
   const [showAddModal, setShowAddModal] = useState(false)
   const [wordToAdd, setWordToAdd] = useState<WordSearchResult | null>(null)
   const [newDictTitle, setNewDictTitle] = useState('')
 
-  // Состояние Placement Test
   const [isTesting, setIsTesting] = useState(false)
   const [testQuestions, setTestQuestions] = useState<PlacementQuestion[]>([])
   const [currentQIndex, setCurrentQIndex] = useState(0)
@@ -64,7 +63,7 @@ export default function App() {
 
   const loadDashboard = async () => {
     try {
-      const res = await fetch('/api/v1/users/me/dashboard', { headers: getHeaders() })
+      const res = await fetch(`${API_BASE}/api/v1/users/me/dashboard`, { headers: getHeaders() })
       if (res.ok) {
         const data = await res.json()
         setDashboard(data)
@@ -76,8 +75,8 @@ export default function App() {
   const loadDictionaries = async () => {
     try {
       const [resMy, resSys] = await Promise.all([
-        fetch('/api/v1/dictionaries', { headers: getHeaders() }),
-        fetch('/api/v1/system-dictionaries', { headers: getHeaders() }),
+        fetch(`${API_BASE}/api/v1/dictionaries`, { headers: getHeaders() }),
+        fetch(`${API_BASE}/api/v1/system-dictionaries`, { headers: getHeaders() }),
       ])
       if (resMy.ok) setMyDictionaries(await resMy.json())
       if (resSys.ok) setCatalog(await resSys.json())
@@ -105,7 +104,7 @@ export default function App() {
     setResult(null)
 
     try {
-      const res = await fetch(`/api/v1/words/search?query=${encodeURIComponent(target)}`, {
+      const res = await fetch(`${API_BASE}/api/v1/words/search?query=${encodeURIComponent(target)}`, {
         headers: getHeaders(),
       })
       if (res.status === 404) {
@@ -123,11 +122,11 @@ export default function App() {
     }
   }
 
-  // Создание словаря и добавление слова
+  // Создание словаря
   const handleCreateAndAdd = async (dictTitle: string) => {
-    if (!dictTitle.trim() || !wordToAdd) return
+    if (!dictTitle.trim()) return
     try {
-      const createRes = await fetch('/api/v1/dictionaries', {
+      const createRes = await fetch(`${API_BASE}/api/v1/dictionaries`, {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify({ title: dictTitle.trim() }),
@@ -138,8 +137,12 @@ export default function App() {
         return
       }
       const newDict = await createRes.json()
-      await handleAddWordToDict(newDict.id)
+      if (wordToAdd) {
+        await handleAddWordToDict(newDict.id)
+      }
       setNewDictTitle('')
+      await loadDictionaries()
+      await loadDashboard()
     } catch {
       alert('Ошибка при создании словаря')
     }
@@ -148,7 +151,7 @@ export default function App() {
   const handleAddWordToDict = async (dictId: string) => {
     if (!wordToAdd) return
     try {
-      const res = await fetch(`/api/v1/dictionaries/${dictId}/words`, {
+      const res = await fetch(`${API_BASE}/api/v1/dictionaries/${dictId}/words`, {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify({ word_id: wordToAdd.id }),
@@ -170,7 +173,7 @@ export default function App() {
   const startTest = async () => {
     try {
       setLoading(true)
-      const res = await fetch('/api/v1/placement/test', { headers: getHeaders() })
+      const res = await fetch(`${API_BASE}/api/v1/placement/test`, { headers: getHeaders() })
       if (res.ok) {
         const data = await res.json()
         setTestQuestions(data.questions)
@@ -199,7 +202,7 @@ export default function App() {
   const finishTest = async (finalAnswers: Record<number, string>) => {
     setLoading(true)
     try {
-      const res = await fetch('/api/v1/placement/submit', {
+      const res = await fetch(`${API_BASE}/api/v1/placement/submit`, {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify({ answers: finalAnswers }),
@@ -220,7 +223,7 @@ export default function App() {
   const copyRecommendedDict = async (dictId?: string) => {
     if (!dictId) return
     try {
-      const res = await fetch(`/api/v1/system-dictionaries/${dictId}/copy`, {
+      const res = await fetch(`${API_BASE}/api/v1/system-dictionaries/${dictId}/copy`, {
         method: 'POST',
         headers: getHeaders(),
       })
@@ -235,25 +238,25 @@ export default function App() {
 
   const openSystemDict = async (id: string) => {
     try {
-      const res = await fetch(`/api/v1/system-dictionaries/${id}`, { headers: getHeaders() })
+      const res = await fetch(`${API_BASE}/api/v1/system-dictionaries/${id}`, { headers: getHeaders() })
       if (res.ok) setSelectedSysDict(await res.json())
     } catch {}
   }
 
   const openMyDict = async (id: string) => {
     try {
-      const res = await fetch(`/api/v1/dictionaries/${id}`, { headers: getHeaders() })
+      const res = await fetch(`${API_BASE}/api/v1/dictionaries/${id}`, { headers: getHeaders() })
       if (res.ok) setSelectedMyDict(await res.json())
     } catch {}
   }
 
   return (
     <div className="app-container">
-      {/* Шапка с дашбордом */}
+      {/* Шапка */}
       {!isTesting && (
         <div className="dashboard-banner">
           <div className="banner-top" onClick={startTest} style={{ cursor: 'pointer' }}>
-            <span>🎯 Уровень: <b>{userLevel || 'Не определен (Пройти тест)'}</b></span>
+            <span>🎯 Уровень: <b>{userLevel ? `${userLevel}` : 'Не определен (Пройти тест)'}</b></span>
             <span>➔</span>
           </div>
           <div className="dashboard-stats">
@@ -264,7 +267,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Режим прохождения тестирования */}
+      {/* Экран теста */}
       {isTesting && (
         <div className="test-container">
           {!testResult ? (
@@ -289,7 +292,9 @@ export default function App() {
             <div className="test-result-box">
               <div className="result-badge">{testResult.cefr_level}</div>
               <h2>Твой уровень: {testResult.cefr_level}! 🎉</h2>
-              <p>Правильных ответов: {testResult.score} из {testResult.total}</p>
+              <p style={{ margin: '8px 0', color: 'var(--text-muted)' }}>
+                Правильных ответов: {testResult.score} из {testResult.total}
+              </p>
 
               {testResult.recommended_dictionary_id && (
                 <button
@@ -312,7 +317,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Навигация вкладок */}
+      {/* Вкладки */}
       {!isTesting && (
         <div className="nav-tabs">
           <button className={`nav-btn ${tab === 'search' ? 'active' : ''}`} onClick={() => setTab('search')}>
@@ -327,7 +332,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Вкладка 1: Поиск */}
+      {/* Поиск */}
       {!isTesting && tab === 'search' && (
         <div>
           <form className="search-form" onSubmit={(e) => { e.preventDefault(); handleSearch() }}>
@@ -344,21 +349,21 @@ export default function App() {
           <div className="hints">
             <span>Попробуйте:</span>
             <span className="hint-chip" onClick={() => { setQuery('apple'); handleSearch('apple') }}>apple</span>
-            <span className="hint-chip" onClick={() => { setQuery('car'); handleSearch('car') }}>car</span>
             <span className="hint-chip" onClick={() => { setQuery('freedom'); handleSearch('freedom') }}>freedom</span>
+            <span className="hint-chip" onClick={() => { setQuery('soul'); handleSearch('soul') }}>soul</span>
           </div>
 
           {loading && <div className="state-box"><div className="spinner"></div><p>Ищем слово...</p></div>}
-          {error && <div className="state-box"><p style={{ color: 'red' }}>{error}</p></div>}
+          {error && <div className="state-box"><p style={{ color: 'var(--danger)' }}>{error}</p></div>}
           {notFoundQuery && <div className="state-box"><p>Слово «{notFoundQuery}» не найдено</p></div>}
 
           {result && (
             <div className="result-container">
-              <div className="word-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <h2 className="word-title">{result.word}</h2>
                 <button
                   className="search-btn"
-                  style={{ padding: '6px 12px', fontSize: '13px' }}
+                  style={{ padding: '6px 14px', fontSize: '13px' }}
                   onClick={() => { setWordToAdd(result); setShowAddModal(true) }}
                 >
                   + В словарь
@@ -388,39 +393,50 @@ export default function App() {
         </div>
       )}
 
-      {/* Вкладка 2: Мои словари */}
+      {/* Мои словари */}
       {!isTesting && tab === 'my' && (
         <div>
           {!selectedMyDict ? (
             <div>
-              <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
                 <input
                   type="text"
                   className="search-input"
-                  placeholder="Новый словарь (напр. Рабочие слова)"
+                  placeholder="Новый словарь (напр. Book)"
                   value={newDictTitle}
                   onChange={(e) => setNewDictTitle(e.target.value)}
                 />
                 <button className="search-btn" onClick={() => handleCreateAndAdd(newDictTitle)}>Создать</button>
               </div>
               <div className="dict-list">
-                {myDictionaries.map((d) => (
-                  <div key={d.id} className="dict-card" onClick={() => openMyDict(d.id)}>
-                    <h3>{d.title}</h3>
-                    <span>{d.words_count} слов ➔</span>
-                  </div>
-                ))}
+                {myDictionaries.length === 0 ? (
+                  <div className="state-box"><p>У вас пока нет словарей. Создайте первый!</p></div>
+                ) : (
+                  myDictionaries.map((d) => (
+                    <div key={d.id} className="dict-card" onClick={() => openMyDict(d.id)}>
+                      <div>
+                        <h3>{d.title}</h3>
+                        <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{d.words_count} слов</p>
+                      </div>
+                      <span>Открыть ➔</span>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           ) : (
             <div>
-              <button className="btn-cancel" onClick={() => setSelectedMyDict(null)}>⬅ Назад к словарям</button>
-              <h2 style={{ margin: '12px 0' }}>{selectedMyDict.title}</h2>
+              <button className="btn-cancel" style={{ textAlign: 'left', marginBottom: '8px' }} onClick={() => setSelectedMyDict(null)}>
+                ← Назад к словарям
+              </button>
+              <h2 style={{ marginBottom: '12px' }}>{selectedMyDict.title}</h2>
               <div className="senses-list">
                 {selectedMyDict.words.map((w) => (
                   <div key={w.id} className="sense-card">
                     <b>{w.word}</b>
-                    <div>{w.senses[0]?.translations_ru.join(', ')}</div>
+                    <div style={{ color: 'var(--primary)', fontWeight: 600 }}>
+                      {w.senses[0]?.translations_ru.join(', ')}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -429,7 +445,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Вкладка 3: Каталог */}
+      {/* Каталог */}
       {!isTesting && tab === 'catalog' && (
         <div>
           {!selectedSysDict ? (
@@ -438,8 +454,8 @@ export default function App() {
                 <div key={c.id} className="dict-card" onClick={() => openSystemDict(c.id)}>
                   <div>
                     <span className="badge-level">{c.target_level || 'ALL'}</span>
-                    <h3 style={{ margin: '6px 0' }}>{c.title}</h3>
-                    <p style={{ fontSize: '13px', color: 'gray' }}>{c.description}</p>
+                    <h3 style={{ margin: '4px 0' }}>{c.title}</h3>
+                    <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{c.description}</p>
                   </div>
                   <span>{c.words_count} слов ➔</span>
                 </div>
@@ -447,8 +463,10 @@ export default function App() {
             </div>
           ) : (
             <div>
-              <button className="btn-cancel" onClick={() => setSelectedSysDict(null)}>⬅ В каталог</button>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '12px 0' }}>
+              <button className="btn-cancel" style={{ textAlign: 'left', marginBottom: '8px' }} onClick={() => setSelectedSysDict(null)}>
+                ← В каталог
+              </button>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                 <h2>{selectedSysDict.title}</h2>
                 <button className="search-btn" onClick={() => copyRecommendedDict(selectedSysDict.id)}>
                   📥 Сохранить себе
@@ -458,7 +476,9 @@ export default function App() {
                 {selectedSysDict.words.map((w) => (
                   <div key={w.id} className="sense-card">
                     <b>{w.word}</b> — {w.senses[0]?.translations_ru.join(', ')}
-                    <div style={{ fontSize: '13px', color: 'gray' }}>{w.senses[0]?.definition_en}</div>
+                    <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                      {w.senses[0]?.definition_en}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -467,16 +487,16 @@ export default function App() {
         </div>
       )}
 
-      {/* Модалка добавления слова в словарь */}
+      {/* Модальное окно добавления в словарь */}
       {showAddModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
+        <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h3>Добавить «{wordToAdd?.word}» в словарь</h3>
-            <div className="dict-list" style={{ maxHeight: '200px', overflowY: 'auto', margin: '12px 0' }}>
+            <div className="dict-list" style={{ maxHeight: '180px', overflowY: 'auto', margin: '12px 0' }}>
               {myDictionaries.map((d) => (
-                <div key={d.id} className="dict-card" style={{ padding: '8px' }} onClick={() => handleAddWordToDict(d.id)}>
+                <div key={d.id} className="dict-card" style={{ padding: '10px' }} onClick={() => handleAddWordToDict(d.id)}>
                   <span>{d.title}</span>
-                  <button className="search-btn" style={{ padding: '4px 8px' }}>Выбрать</button>
+                  <span style={{ fontSize: '12px' }}>Выбрать +</span>
                 </div>
               ))}
             </div>
@@ -490,7 +510,7 @@ export default function App() {
               />
               <button className="search-btn" onClick={() => handleCreateAndAdd(newDictTitle)}>OK</button>
             </div>
-            <button className="btn-cancel" style={{ width: '100%', marginTop: '10px' }} onClick={() => setShowAddModal(false)}>
+            <button className="btn-cancel" style={{ marginTop: '10px' }} onClick={() => setShowAddModal(false)}>
               Закрыть
             </button>
           </div>
