@@ -1,0 +1,807 @@
+[
+  {
+    "lemma": "apple",
+    "senses": [
+      {
+        "part_of_speech": "noun",
+        "transcription": "/ˈæp.əl/",
+        "translations_ru": ["яблоко"],
+        "definition_en": "A round fruit with firm, white flesh and a green, red, or yellow skin.",
+        "example_en": "There are oranges, apples and pears on the table.",
+        "example_ru": "На столе лежат апельсины, яблоки и груши.",
+        "synonyms": [],
+        "order_index": 0
+      }
+    ]
+  },
+  {
+    "lemma": "run",
+    "senses": [
+      {
+        "part_of_speech": "verb",
+        "transcription": "/rʌn/",
+        "translations_ru": ["бежать", "бегать"],
+        "definition_en": "To move along, faster than walking, by using both legs alternately.",
+        "example_en": "I run five miles every morning.",
+        "example_ru": "Каждое утро я пробегаю пять миль.",
+        "synonyms": ["sprint", "jog", "dash"],
+        "order_index": 0
+      },
+      {
+        "part_of_speech": "verb",
+        "transcription": "/rʌn/",
+        "translations_ru": ["управлять", "руководить"],
+        "definition_en": "To manage, operate, or be in charge of something.",
+        "example_en": "She runs her own digital marketing agency.",
+        "example_ru": "Она руководит собственным агентством цифрового маркетинга.",
+        "synonyms": ["manage", "operate", "lead"],
+        "order_index": 1
+      },
+      {
+        "part_of_speech": "noun",
+        "transcription": "/rʌn/",
+        "translations_ru": ["пробежка", "бег"],
+        "definition_en": "A period or spell of running, often for exercise.",
+        "example_en": "I am going for a quick run before breakfast.",
+        "example_ru": "Я пойду на быструю пробежку перед завтраком.",
+        "synonyms": ["jog", "sprint"],
+        "order_index": 2
+      }
+    ]
+  },
+  {
+    "lemma": "set",
+    "senses": [
+      {
+        "part_of_speech": "verb",
+        "transcription": "/sɛt/",
+        "translations_ru": ["устанавливать", "ставить"],
+        "definition_en": "To put or place something in a specified position or state.",
+        "example_en": "Set the alarm clock for seven in the morning.",
+        "example_ru": "Установи будильник на семь утра.",
+        "synonyms": ["place", "put", "position"],
+        "order_index": 0
+      },
+      {
+        "part_of_speech": "noun",
+        "transcription": "/sɛt/",
+        "translations_ru": ["набор", "комплект"],
+        "definition_en": "A collection of items belonging together or used for the same purpose.",
+        "example_en": "He bought a new set of screwdrivers.",
+        "example_ru": "Он купил новый набор отверток.",
+        "synonyms": ["collection", "kit", "pack"],
+        "order_index": 1
+      },
+      {
+        "part_of_speech": "adjective",
+        "transcription": "/sɛt/",
+        "translations_ru": ["фиксированный", "готовый"],
+        "definition_en": "Fixed or established beforehand.",
+        "example_en": "We work with a set schedule every weekday.",
+        "example_ru": "Мы работаем по фиксированному графику каждый будний день.",
+        "synonyms": ["fixed", "predetermined"],
+        "order_index": 2
+      }
+    ]
+  },
+  {
+    "lemma": "book",
+    "senses": [
+      {
+        "part_of_speech": "noun",
+        "transcription": "/bʊk/",
+        "translations_ru": ["книга"],
+        "definition_en": "A set of written or printed pages bound together.",
+        "example_en": "She spent the whole evening reading an engaging book.",
+        "example_ru": "Она провела весь вечер за чтением увлекательной книги.",
+        "synonyms": ["volume", "tome"],
+        "order_index": 0
+      },
+      {
+        "part_of_speech": "verb",
+        "transcription": "/bʊk/",
+        "translations_ru": ["бронировать", "заказывать"],
+        "definition_en": "To reserve accommodation, a place, or tickets in advance.",
+        "example_en": "We need to book flight tickets early to save money.",
+        "example_ru": "Нам нужно забронировать авиабилеты заранее, чтобы сэкономить деньги.",
+        "synonyms": ["reserve", "order"],
+        "order_index": 1
+      }
+    ]
+  },
+  {
+    "lemma": "light",
+    "senses": [
+      {
+        "part_of_speech": "noun",
+        "transcription": "/laɪt/",
+        "translations_ru": ["свет", "освещение"],
+        "definition_en": "The natural agent that stimulates sight and makes things visible.",
+        "example_en": "Morning light flooded the entire bedroom.",
+        "example_ru": "Утренний свет залил всю спальню.",
+        "synonyms": ["illumination", "brightness"],
+        "order_index": 0
+      },
+      {
+        "part_of_speech": "adjective",
+        "transcription": "/laɪt/",
+        "translations_ru": ["легкий"],
+        "definition_en": "Of little weight; not heavy.",
+        "example_en": "This suitcase is surprisingly light and easy to carry.",
+        "example_ru": "Этот чемодан на удивление легкий, и его просто нести.",
+        "synonyms": ["weightless", "featherweight"],
+        "order_index": 1
+      },
+      {
+        "part_of_speech": "adjective",
+        "transcription": "/laɪt/",
+        "translations_ru": ["светлый"],
+        "definition_en": "Having a pale color or containing much light.",
+        "example_en": "She decided to paint the kitchen walls a light blue shade.",
+        "example_ru": "Она решила покрасить стены кухни в светло-голубой оттенок.",
+        "synonyms": ["pale", "bright"],
+        "order_index": 2
+      },
+      {
+        "part_of_speech": "verb",
+        "transcription": "/laɪt/",
+        "translations_ru": ["зажигать", "освещать"],
+        "definition_en": "To ignite something or provide illumination.",
+        "example_en": "He used matches to light the candles on the cake.",
+        "example_ru": "Он использовал спички, чтобы зажечь свечи на торте.",
+        "synonyms": ["ignite", "kindle", "illuminate"],
+        "order_index": 3
+      }
+    ]
+  },
+  {
+    "lemma": "water",
+    "senses": [
+      {
+        "part_of_speech": "noun",
+        "transcription": "/ˈwɔː.tər/",
+        "translations_ru": ["вода"],
+        "definition_en": "A clear liquid with no color or taste that forms rivers, lakes, and rain.",
+        "example_en": "Remember to drink a sufficient amount of water every day.",
+        "example_ru": "Не забывай пить достаточное количество воды каждый день.",
+        "synonyms": [],
+        "order_index": 0
+      },
+      {
+        "part_of_speech": "verb",
+        "transcription": "/ˈwɔː.tər/",
+        "translations_ru": ["поливать"],
+        "definition_en": "To pour water on plants or soil to help them grow.",
+        "example_en": "Do not forget to water the flowers while I am away.",
+        "example_ru": "Не забудь полить цветы, пока меня не будет.",
+        "synonyms": ["irrigate"],
+        "order_index": 1
+      }
+    ]
+  },
+  {
+    "lemma": "time",
+    "senses": [
+      {
+        "part_of_speech": "noun",
+        "transcription": "/taɪm/",
+        "translations_ru": ["время"],
+        "definition_en": "The indefinite continued progress of existence and events in the past, present, and future.",
+        "example_en": "We do not have much time left before the train leaves.",
+        "example_ru": "У нас осталось мало времени до отправления поезда.",
+        "synonyms": ["duration", "period"],
+        "order_index": 0
+      }
+    ]
+  },
+  {
+    "lemma": "house",
+    "senses": [
+      {
+        "part_of_speech": "noun",
+        "transcription": "/haʊs/",
+        "translations_ru": ["дом"],
+        "definition_en": "A building for human habitation, especially one that is lived in by a family.",
+        "example_en": "They moved into a cozy wooden house near the lake.",
+        "example_ru": "Они переехали в уютный деревянный дом около озера.",
+        "synonyms": ["home", "dwelling", "residence"],
+        "order_index": 0
+      }
+    ]
+  },
+  {
+    "lemma": "friend",
+    "senses": [
+      {
+        "part_of_speech": "noun",
+        "transcription": "/frɛnd/",
+        "translations_ru": ["друг", "подруга"],
+        "definition_en": "A person with whom one has a bond of mutual affection and trust.",
+        "example_en": "A true friend is always there to support you in difficult times.",
+        "example_ru": "Настоящий друг всегда рядом, чтобы поддержать тебя в трудные времена.",
+        "synonyms": ["companion", "mate", "pal"],
+        "order_index": 0
+      }
+    ]
+  },
+  {
+    "lemma": "work",
+    "senses": [
+      {
+        "part_of_speech": "verb",
+        "transcription": "/wɜːrk/",
+        "translations_ru": ["работать", "трудиться"],
+        "definition_en": "To be engaged in physical or mental activity in order to achieve a result.",
+        "example_en": "She works remotely for an international software company.",
+        "example_ru": "Она работает удаленно на международную компанию по разработке ПО.",
+        "synonyms": ["labor", "toil"],
+        "order_index": 0
+      },
+      {
+        "part_of_speech": "noun",
+        "transcription": "/wɜːrk/",
+        "translations_ru": ["работа", "труд"],
+        "definition_en": "Activity involving mental or physical effort done in order to achieve a purpose.",
+        "example_en": "He finished all his work early on Friday.",
+        "example_ru": "Он закончил всю свою работу пораньше в пятницу.",
+        "synonyms": ["job", "employment", "task"],
+        "order_index": 1
+      }
+    ]
+  },
+  {
+    "lemma": "play",
+    "senses": [
+      {
+        "part_of_speech": "verb",
+        "transcription": "/pleɪ/",
+        "translations_ru": ["играть"],
+        "definition_en": "To engage in activity for enjoyment and recreation rather than a serious purpose.",
+        "example_en": "Children love to play football in the yard.",
+        "example_ru": "Дети обожают играть в футбол во дворе.",
+        "synonyms": ["recreate"],
+        "order_index": 0
+      },
+      {
+        "part_of_speech": "noun",
+        "transcription": "/pleɪ/",
+        "translations_ru": ["пьеса", "спектакль"],
+        "definition_en": "A theatrical performance or piece of dramatic writing.",
+        "example_en": "We watched an extraordinary modern play at the theater yesterday.",
+        "example_ru": "Вчера в театре мы посмотрели удивительную современную пьесу.",
+        "synonyms": ["drama", "show"],
+        "order_index": 1
+      }
+    ]
+  },
+  {
+    "lemma": "break",
+    "senses": [
+      {
+        "part_of_speech": "verb",
+        "transcription": "/breɪk/",
+        "translations_ru": ["ломать", "разбивать"],
+        "definition_en": "To separate into pieces as a result of a blow, shock, or strain.",
+        "example_en": "Be cautious not to break the fragile glass vase.",
+        "example_ru": "Будь осторожен, чтобы не разбить хрупкую стеклянную вазу.",
+        "synonyms": ["shatter", "crack", "smash"],
+        "order_index": 0
+      },
+      {
+        "part_of_speech": "noun",
+        "transcription": "/breɪk/",
+        "translations_ru": ["перерыв", "пауза"],
+        "definition_en": "A pause in work or during an activity or event.",
+        "example_en": "Let us take a brief ten-minute break for coffee.",
+        "example_ru": "Давайте сделаем короткий десятиминутный перерыв на кофе.",
+        "synonyms": ["pause", "interval", "rest"],
+        "order_index": 1
+      }
+    ]
+  },
+  {
+    "lemma": "fast",
+    "senses": [
+      {
+        "part_of_speech": "adjective",
+        "transcription": "/fæst/",
+        "translations_ru": ["быстрый", "скорый"],
+        "definition_en": "Moving or capable of moving at high speed.",
+        "example_en": "They traveled on a modern fast train between the capitals.",
+        "example_ru": "Они ехали на современном скоростном поезде между столицами.",
+        "synonyms": ["quick", "rapid", "swift"],
+        "order_index": 0
+      },
+      {
+        "part_of_speech": "adverb",
+        "transcription": "/fæst/",
+        "translations_ru": ["быстро"],
+        "definition_en": "At high speed; quickly.",
+        "example_en": "Time flies fast when you are enjoying yourself.",
+        "example_ru": "Время летит быстро, когда ты получаешь удовольствие.",
+        "synonyms": ["quickly", "rapidly", "swiftly"],
+        "order_index": 1
+      }
+    ]
+  },
+  {
+    "lemma": "sound",
+    "senses": [
+      {
+        "part_of_speech": "noun",
+        "transcription": "/saʊnd/",
+        "translations_ru": ["звук"],
+        "definition_en": "Vibrations that travel through the air and can be heard by an ear.",
+        "example_en": "The sound of rain against the window was peaceful.",
+        "example_ru": "Звук дождя за окном действовал успокаивающе.",
+        "synonyms": ["noise", "tone"],
+        "order_index": 0
+      },
+      {
+        "part_of_speech": "adjective",
+        "transcription": "/saʊnd/",
+        "translations_ru": ["надежный", "здравый", "крепкий"],
+        "definition_en": "In good condition; not damaged or diseased; showing good judgment.",
+        "example_en": "Investing in education is always a sound decision.",
+        "example_ru": "Инвестиции в образование — это всегда здравое решение.",
+        "synonyms": ["solid", "reliable", "sensible"],
+        "order_index": 1
+      }
+    ]
+  },
+  {
+    "lemma": "mind",
+    "senses": [
+      {
+        "part_of_speech": "noun",
+        "transcription": "/maɪnd/",
+        "translations_ru": ["разум", "ум"],
+        "definition_en": "The element of a person that enables them to be aware of the world and their experiences.",
+        "example_en": "Keep an open mind when exploring unfamiliar cultures.",
+        "example_ru": "Сохраняй открытый разум, когда знакомишься с незнакомыми культурами.",
+        "synonyms": ["intellect", "brain", "psyche"],
+        "order_index": 0
+      },
+      {
+        "part_of_speech": "verb",
+        "transcription": "/maɪnd/",
+        "translations_ru": ["возражать", "быть против"],
+        "definition_en": "To feel annoyed, upset, or unhappy about something.",
+        "example_en": "Do you mind if I open the office window?",
+        "example_ru": "Вы не против, если я открою окно в кабинете?",
+        "synonyms": ["object", "care"],
+        "order_index": 1
+      }
+    ]
+  },
+  {
+    "lemma": "watch",
+    "senses": [
+      {
+        "part_of_speech": "verb",
+        "transcription": "/wɒtʃ/",
+        "translations_ru": ["смотреть", "наблюдать"],
+        "definition_en": "To look at or observe attentively over a period of time.",
+        "example_en": "We stayed up late to watch a classic documentary.",
+        "example_ru": "Мы засиделись допоздна, чтобы посмотреть классический документальный фильм.",
+        "synonyms": ["observe", "view", "see"],
+        "order_index": 0
+      },
+      {
+        "part_of_speech": "noun",
+        "transcription": "/wɒtʃ/",
+        "translations_ru": ["часы", "наручные часы"],
+        "definition_en": "A small timepiece worn typically on a strap on one's wrist.",
+        "example_en": "His grandfather gave him a vintage mechanical watch.",
+        "example_ru": "Дедушка подарил ему винтажные механические часы.",
+        "synonyms": ["timepiece"],
+        "order_index": 1
+      }
+    ]
+  },
+  {
+    "lemma": "spring",
+    "senses": [
+      {
+        "part_of_speech": "noun",
+        "transcription": "/sprɪŋ/",
+        "translations_ru": ["весна"],
+        "definition_en": "The season after winter and before summer, in which vegetation begins to appear.",
+        "example_en": "Spring brings warm sunny days and blooming flowers.",
+        "example_ru": "Весна приносит теплые солнечные дни и цветущие цветы.",
+        "synonyms": ["springtime"],
+        "order_index": 0
+      },
+      {
+        "part_of_speech": "noun",
+        "transcription": "/sprɪŋ/",
+        "translations_ru": ["родник", "источник"],
+        "definition_en": "A place where water or oil wells up from the earth to the surface.",
+        "example_en": "The mountain hikers drank cool water directly from a fresh spring.",
+        "example_ru": "Горные туристы пили прохладную воду прямо из свежего родника.",
+        "synonyms": ["source", "wellhead"],
+        "order_index": 1
+      },
+      {
+        "part_of_speech": "verb",
+        "transcription": "/sprɪŋ/",
+        "translations_ru": ["прыгать", "вскакивать"],
+        "definition_en": "To move or jump suddenly or rapidly upwards or forwards.",
+        "example_en": "The cat will spring onto the windowsill as soon as a bird appears.",
+        "example_ru": "Кошка запрыгнет на подоконник, как только появится птица.",
+        "synonyms": ["leap", "jump", "bound"],
+        "order_index": 2
+      }
+    ]
+  },
+  {
+    "lemma": "kind",
+    "senses": [
+      {
+        "part_of_speech": "adjective",
+        "transcription": "/kaɪnd/",
+        "translations_ru": ["добрый", "любезный"],
+        "definition_en": "Having or showing a friendly, generous, and considerate nature.",
+        "example_en": "She was remarkably kind to strangers who asked for directions.",
+        "example_ru": "Она была удивительно добра к незнакомцам, которые спрашивали дорогу.",
+        "synonyms": ["benevolent", "gracious", "gentle"],
+        "order_index": 0
+      },
+      {
+        "part_of_speech": "noun",
+        "transcription": "/kaɪnd/",
+        "translations_ru": ["вид", "тип", "сорт"],
+        "definition_en": "A group of people or things having similar characteristics.",
+        "example_en": "What kind of literature do you prefer reading?",
+        "example_ru": "Какой тип литературы ты предпочитаешь читать?",
+        "synonyms": ["type", "sort", "variety"],
+        "order_index": 1
+      }
+    ]
+  },
+  {
+    "lemma": "change",
+    "senses": [
+      {
+        "part_of_speech": "verb",
+        "transcription": "/tʃeɪndʒ/",
+        "translations_ru": ["менять", "изменять"],
+        "definition_en": "To make or become different.",
+        "example_en": "Traveling abroad can change a person's entire perspective on life.",
+        "example_ru": "Путешествия за границу могут полностью изменить взгляд человека на жизнь.",
+        "synonyms": ["alter", "transform", "modify"],
+        "order_index": 0
+      },
+      {
+        "part_of_speech": "noun",
+        "transcription": "/tʃeɪndʒ/",
+        "translations_ru": ["перемена", "изменение"],
+        "definition_en": "An act or process through which something becomes different.",
+        "example_en": "We are experiencing a rapid technological change in our industry.",
+        "example_ru": "В нашей отрасли происходят стремительные технологические перемены.",
+        "synonyms": ["shift", "transformation"],
+        "order_index": 1
+      },
+      {
+        "part_of_speech": "noun",
+        "transcription": "/tʃeɪndʒ/",
+        "translations_ru": ["сдача", "мелочь"],
+        "definition_en": "The money returned when the amount paid exceeds the cost, or small coins.",
+        "example_en": "The cashier counted the change and handed it back to the customer.",
+        "example_ru": "Кассир пересчитал сдачу и отдал её покупателю.",
+        "synonyms": ["coins"],
+        "order_index": 2
+      }
+    ]
+  },
+  {
+    "lemma": "room",
+    "senses": [
+      {
+        "part_of_speech": "noun",
+        "transcription": "/ruːm/",
+        "translations_ru": ["комната"],
+        "definition_en": "A part or division of a building enclosed by walls, floor, and ceiling.",
+        "example_en": "Their living room is filled with bright natural light.",
+        "example_ru": "Их гостиная наполнена ярким естественным светом.",
+        "synonyms": ["chamber"],
+        "order_index": 0
+      },
+      {
+        "part_of_speech": "noun",
+        "transcription": "/ruːm/",
+        "translations_ru": ["место", "пространство"],
+        "definition_en": "Space that can be occupied or where something can be done.",
+        "example_en": "There was no room left in the trunk for another bag.",
+        "example_ru": "В багажнике не осталось места для еще одной сумки.",
+        "synonyms": ["space", "capacity"],
+        "order_index": 1
+      }
+    ]
+  },
+  {
+    "lemma": "fall",
+    "senses": [
+      {
+        "part_of_speech": "verb",
+        "transcription": "/fɔːl/",
+        "translations_ru": ["падать"],
+        "definition_en": "To drop or descend under the force of gravity from a higher to a lower level.",
+        "example_en": "Dry leaves begin to fall from the trees in autumn.",
+        "example_ru": "Сухие листья начинают падать с деревьев осенью.",
+        "synonyms": ["drop", "descend", "plummet"],
+        "order_index": 0
+      },
+      {
+        "part_of_speech": "noun",
+        "transcription": "/fɔːl/",
+        "translations_ru": ["осень"],
+        "definition_en": "The season of the year between summer and winter (chiefly North American).",
+        "example_en": "They planned a road trip across the state this coming fall.",
+        "example_ru": "Они запланировали поездку на машине по штату этой осенью.",
+        "synonyms": ["autumn"],
+        "order_index": 1
+      }
+    ]
+  },
+  {
+    "lemma": "present",
+    "senses": [
+      {
+        "part_of_speech": "noun",
+        "transcription": "/ˈprɛz.ənt/",
+        "translations_ru": ["подарок"],
+        "definition_en": "A thing given to someone as a gift.",
+        "example_en": "He bought a charming birthday present for his sister.",
+        "example_ru": "Он купил очаровательный подарок на день рождения своей сестре.",
+        "synonyms": ["gift"],
+        "order_index": 0
+      },
+      {
+        "part_of_speech": "adjective",
+        "transcription": "/ˈprɛz.ənt/",
+        "translations_ru": ["присутствующий", "настоящий"],
+        "definition_en": "In a particular place; or existing and occurring now.",
+        "example_en": "All members of the board were present at the annual meeting.",
+        "example_ru": "Все члены правления присутствовали на ежегодном собрании.",
+        "synonyms": ["attending", "current"],
+        "order_index": 1
+      },
+      {
+        "part_of_speech": "verb",
+        "transcription": "/prɪˈzɛnt/",
+        "translations_ru": ["представлять", "презентовать"],
+        "definition_en": "To formally introduce, display, or exhibit something to an audience.",
+        "example_en": "She will present the survey findings to the client tomorrow.",
+        "example_ru": "Завтра она представит результаты опроса клиенту.",
+        "synonyms": ["introduce", "exhibit", "display"],
+        "order_index": 2
+      }
+    ]
+  },
+  {
+    "lemma": "fly",
+    "senses": [
+      {
+        "part_of_speech": "verb",
+        "transcription": "/flaɪ/",
+        "translations_ru": ["летать", "лететь"],
+        "definition_en": "To move through the air using wings or via aircraft.",
+        "example_en": "Wild birds fly south during the cold winter months.",
+        "example_ru": "Дикие птицы улетают на юг в холодные зимние месяцы.",
+        "synonyms": ["soar", "glide"],
+        "order_index": 0
+      },
+      {
+        "part_of_speech": "noun",
+        "transcription": "/flaɪ/",
+        "translations_ru": ["муха"],
+        "definition_en": "A common small winged insect.",
+        "example_en": "A noisy fly buzzed around the kitchen window.",
+        "example_ru": "Шумная муха жужжала у кухонного окна.",
+        "synonyms": [],
+        "order_index": 1
+      }
+    ]
+  },
+  {
+    "lemma": "lead",
+    "senses": [
+      {
+        "part_of_speech": "verb",
+        "transcription": "/liːd/",
+        "translations_ru": ["вести", "руководить"],
+        "definition_en": "To cause a person or animal to go with one; or be in charge of.",
+        "example_en": "An experienced guide will lead the group through the steep trail.",
+        "example_ru": "Опытный гид поведет группу по крутой тропе.",
+        "synonyms": ["guide", "direct", "head"],
+        "order_index": 0
+      },
+      {
+        "part_of_speech": "noun",
+        "transcription": "/lɛd/",
+        "translations_ru": ["свинец"],
+        "definition_en": "A heavy, soft, malleable bluish-white metallic chemical element.",
+        "example_en": "Old domestic plumbing pipes were frequently made of lead.",
+        "example_ru": "Старые трубы домашнего водопровода часто делались из свинца.",
+        "synonyms": [],
+        "order_index": 1
+      }
+    ]
+  },
+  {
+    "lemma": "bear",
+    "senses": [
+      {
+        "part_of_speech": "noun",
+        "transcription": "/bɛər/",
+        "translations_ru": ["медведь"],
+        "definition_en": "A large, heavy wild mammal with thick fur and sharp claws.",
+        "example_en": "A brown bear was spotted searching for fish in the river.",
+        "example_ru": "В реке заметили бурого медведя, который искал рыбу.",
+        "synonyms": [],
+        "order_index": 0
+      },
+      {
+        "part_of_speech": "verb",
+        "transcription": "/bɛər/",
+        "translations_ru": ["выносить", "терпеть"],
+        "definition_en": "To manage to tolerate a difficult situation or pain.",
+        "example_en": "I cannot bear the humid summer heat in this city.",
+        "example_ru": "Я не могу выносить влажную летнюю жару в этом городе.",
+        "synonyms": ["endure", "tolerate", "stand"],
+        "order_index": 1
+      }
+    ]
+  },
+  {
+    "lemma": "close",
+    "senses": [
+      {
+        "part_of_speech": "verb",
+        "transcription": "/kloʊz/",
+        "translations_ru": ["закрывать"],
+        "definition_en": "To move something so that an opening is covered or obstructed.",
+        "example_en": "Please close the front door so the warmth does not escape.",
+        "example_ru": "Пожалуйста, закрой входную дверь, чтобы не уходило тепло.",
+        "synonyms": ["shut"],
+        "order_index": 0
+      },
+      {
+        "part_of_speech": "adjective",
+        "transcription": "/kloʊs/",
+        "translations_ru": ["близкий"],
+        "definition_en": "Only a short distance away or having strong emotional ties.",
+        "example_en": "Our cozy house is situated very close to the central metro station.",
+        "example_ru": "Наш уютный дом расположен очень близко к центральной станции метро.",
+        "synonyms": ["near", "adjacent", "intimate"],
+        "order_index": 1
+      }
+    ]
+  },
+  {
+    "lemma": "bank",
+    "senses": [
+      {
+        "part_of_speech": "noun",
+        "transcription": "/bæŋk/",
+        "translations_ru": ["банк"],
+        "definition_en": "A financial establishment that invests money deposited by customers and pays it out.",
+        "example_en": "She went into the bank to deposit her paycheck.",
+        "example_ru": "Она зашла в банк, чтобы положить свою зарплату на счет.",
+        "synonyms": ["financial institution"],
+        "order_index": 0
+      },
+      {
+        "part_of_speech": "noun",
+        "transcription": "/bæŋk/",
+        "translations_ru": ["берег", "набережная"],
+        "definition_en": "The land alongside or sloping down to a river or lake.",
+        "example_en": "They pitched their canvas tent right on the grassy bank of the river.",
+        "example_ru": "Они поставили свою брезентовую палатку прямо на травянистом берегу реки.",
+        "synonyms": ["shore", "riverside"],
+        "order_index": 1
+      }
+    ]
+  },
+  {
+    "lemma": "fine",
+    "senses": [
+      {
+        "part_of_speech": "adjective",
+        "transcription": "/faɪn/",
+        "translations_ru": ["прекрасный", "хороший", "в порядке"],
+        "definition_en": "Of high quality, satisfactory, or pleasing.",
+        "example_en": "The weather forecast promises a fine and sunny weekend.",
+        "example_ru": "Прогноз погоды обещает прекрасные и солнечные выходные.",
+        "synonyms": ["excellent", "satisfactory", "pleasant"],
+        "order_index": 0
+      },
+      {
+        "part_of_speech": "noun",
+        "transcription": "/faɪn/",
+        "translations_ru": ["штраф"],
+        "definition_en": "A sum of money exacted as a penalty by a court of law or other authority.",
+        "example_en": "He had to pay a heavy parking fine yesterday.",
+        "example_ru": "Вчера ему пришлось заплатить крупный штраф за парковку.",
+        "synonyms": ["penalty"],
+        "order_index": 1
+      }
+    ]
+  },
+  {
+    "lemma": "fire",
+    "senses": [
+      {
+        "part_of_speech": "noun",
+        "transcription": "/faɪər/",
+        "translations_ru": ["огонь", "пламя", "костер"],
+        "definition_en": "Combustion or burning, in which substances combine chemically with oxygen.",
+        "example_en": "We sat around the evening camp fire roasting marshmallows.",
+        "example_ru": "Мы сидели вокруг вечернего костра и жарили маршмеллоу.",
+        "synonyms": ["flame", "blaze"],
+        "order_index": 0
+      },
+      {
+        "part_of_speech": "verb",
+        "transcription": "/faɪər/",
+        "translations_ru": ["увольнять"],
+        "definition_en": "To dismiss an employee from a job.",
+        "example_en": "The director had to fire workers due to organizational budget cuts.",
+        "example_ru": "Директору пришлось уволить сотрудников из-за сокращения бюджета организации.",
+        "synonyms": ["dismiss", "discharge", "sack"],
+        "order_index": 1
+      }
+    ]
+  },
+  {
+    "lemma": "train",
+    "senses": [
+      {
+        "part_of_speech": "noun",
+        "transcription": "/treɪn/",
+        "translations_ru": ["поезд"],
+        "definition_en": "A series of railway carriages or wagons moved by a locomotive.",
+        "example_en": "The passenger train arrived at platform number four precisely on schedule.",
+        "example_ru": "Пассажирский поезд прибыл на четвертую платформу точно по расписанию.",
+        "synonyms": [],
+        "order_index": 0
+      },
+      {
+        "part_of_speech": "verb",
+        "transcription": "/treɪn/",
+        "translations_ru": ["тренироваться", "обучать"],
+        "definition_en": "To teach or undergo a course of exercise and instruction.",
+        "example_en": "Athletes train consistently for years before competing in world games.",
+        "example_ru": "Спортсмены упорно тренируются годами перед участием в мировых играх.",
+        "synonyms": ["exercise", "coach", "drill"],
+        "order_index": 1
+      }
+    ]
+  },
+  {
+    "lemma": "park",
+    "senses": [
+      {
+        "part_of_speech": "noun",
+        "transcription": "/pɑːrk/",
+        "translations_ru": ["парк"],
+        "definition_en": "A large public green area used for recreation.",
+        "example_en": "Families spend sunny Sunday afternoons relaxing in the city park.",
+        "example_ru": "Семьи проводят солнечные воскресные дни, отдыхая в городском парке.",
+        "synonyms": ["gardens"],
+        "order_index": 0
+      },
+      {
+        "part_of_speech": "verb",
+        "transcription": "/pɑːrk/",
+        "translations_ru": ["парковать", "парковать автомобиль"],
+        "definition_en": "To bring a vehicle that one is driving to a halt and leave it temporarily.",
+        "example_en": "It is nearly impossible to park a car on these narrow streets.",
+        "example_ru": "На этих узких улицах практически невозможно припарковать машину.",
+        "synonyms": [],
+        "order_index": 1
+      }
+    ]
+  }
+]
