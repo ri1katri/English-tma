@@ -86,6 +86,36 @@ export interface LearningSessionResponse {
   cards: LearningCard[]
 }
 
+export interface PlacementQuestion {
+  id: number
+  level: string
+  word: string
+  prompt: string
+  options: string[]
+}
+
+export interface PlacementTestResponse {
+  questions: PlacementQuestion[]
+}
+
+export interface PlacementResultResponse {
+  score: number
+  total: number
+  cefr_level: string
+  level_title: string
+  description: string
+  recommended_dictionary_id?: string | null
+}
+
+export interface UserProfile {
+  id: string
+  telegram_id: number
+  first_name: string
+  last_name?: string | null
+  username?: string | null
+  cefr_level?: string | null
+}
+
 declare global {
   interface Window {
     Telegram?: {

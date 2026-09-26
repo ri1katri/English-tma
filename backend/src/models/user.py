@@ -1,6 +1,6 @@
 import uuid
 from typing import Optional
-from sqlalchemy import BigInteger, DateTime, String, func, text
+from sqlalchemy import BigInteger, DateTime, Integer, String, func, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 from src.models.base import Base
@@ -31,6 +31,18 @@ class User(Base):
     )
     username: Mapped[Optional[str]] = mapped_column(
         String(64),
+        nullable=True,
+    )
+    cefr_level: Mapped[Optional[str]] = mapped_column(
+        String(8),
+        nullable=True,
+    )
+    placement_score: Mapped[Optional[int]] = mapped_column(
+        Integer,
+        nullable=True,
+    )
+    placement_completed_at: Mapped[Optional[DateTime]] = mapped_column(
+        DateTime(timezone=True),
         nullable=True,
     )
     created_at: Mapped[DateTime] = mapped_column(

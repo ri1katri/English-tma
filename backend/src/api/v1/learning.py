@@ -38,6 +38,7 @@ async def get_learning_session(
 ):
     selected_words: List[Word] = []
 
+    # 1. Попытка получить слова из конкретного словаря
     if dictionary_id:
         dict_stmt = select(UserDictionary).where(
             UserDictionary.id == dictionary_id,
@@ -61,6 +62,7 @@ async def get_learning_session(
         random.shuffle(dict_words)
         selected_words.extend(dict_words[:limit])
     else:
+        # Попытка взять слова из личного прогресса
         prog_stmt = (
             select(Word)
             .join(UserWordProgress, UserWordProgress.word_id == Word.id)
@@ -75,6 +77,7 @@ async def get_learning_session(
         prog_res = await db.execute(prog_stmt)
         selected_words.extend(prog_res.scalars().all())
 
+    # 2. Безопасный fallback: берем любые слова из глобальной базы
     if len(selected_words) < limit:
         needed = limit - len(selected_words)
         exclude_ids = [w.id for w in selected_words]
@@ -88,6 +91,7 @@ async def get_learning_session(
         fallback_res = await db.execute(fallback_stmt)
         selected_words.extend(fallback_res.scalars().all())
 
+    # 3. Если в базе совсем нет слов — возвращаем cards: [] без ошибки 500
     if not selected_words:
         return LearningSessionResponse(cards=[])
 
@@ -105,7 +109,7 @@ async def get_learning_session(
 
     for word in selected_words:
         sense = word.senses[0] if word.senses else None
-        if not sense:
+        if not sense or not sense.translations_ru:
             continue
 
         chosen_type = random.choice(exercise_types)
@@ -113,13 +117,13 @@ async def get_learning_session(
             chosen_type = random.choice(["multiple_choice", "letter_scramble", "missing_letters"])
 
         if chosen_type == "multiple_choice":
-            correct_trans = sense.translations_ru[0] if sense.translations_ru else word.lemma
+            correct_trans = sense.translations_ru[0]
             distractor_pool = [
                 pw.senses[0].translations_ru[0]
                 for pw in pool_words
                 if pw.id != word.id and pw.senses and pw.senses[0].translations_ru
             ]
-            sampled = random.sample(distractor_pool, min(3, len(distractor_pool)))
+            sampled = random.sample(distractor_pool, min(3, len(distractor_pool))) if distractor_pool else []
             options = list(set([correct_trans] + sampled))
             while len(options) < 4:
                 options.append(f"Вариант {len(options) + 1}")
@@ -132,7 +136,7 @@ async def get_learning_session(
                     prompt_main=word.lemma,
                     prompt_sub=f"[{sense.transcription}] • {sense.part_of_speech}" if sense.transcription else sense.part_of_speech,
                     target_answer=correct_trans,
-                    options=options,
+                    options=options[:4],
                     tokens=[],
                 )
             )
@@ -148,7 +152,7 @@ async def get_learning_session(
                 LearningCard(
                     question_id=word.id,
                     exercise_type="letter_scramble",
-                    prompt_main=sense.translations_ru[0] if sense.translations_ru else word.lemma,
+                    prompt_main=sense.translations_ru[0],
                     prompt_sub="Соберите слово из предложенных букв",
                     target_answer=word.lemma.lower(),
                     tokens=all_letters,
@@ -177,7 +181,7 @@ async def get_learning_session(
                     question_id=word.id,
                     exercise_type="missing_letters",
                     prompt_main=masked_word,
-                    prompt_sub=f"Перевод: {sense.translations_ru[0]}" if sense.translations_ru else "Восстановите пропущенные буквы",
+                    prompt_sub=f"Перевод: {sense.translations_ru[0]}",
                     target_answer=w,
                     tokens=tokens,
                     options=[],

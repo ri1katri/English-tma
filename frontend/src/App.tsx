@@ -1,18 +1,20 @@
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import type {
   DashboardStats,
   ExerciseType,
   LearningCard,
   LearningSessionResponse,
+  PlacementQuestion,
+  PlacementResultResponse,
+  PlacementTestResponse,
   SystemDictionaryDetail,
   SystemDictionarySummary,
   UserDictionaryDetail,
   UserDictionarySummary,
+  UserProfile,
   WordProgress,
   WordSearchResult,
 } from './types'
-
-const API_BASE = import.meta.env.VITE_API_URL || ''
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'search' | 'dictionaries' | 'catalog' | 'learning'>('search')
@@ -21,7 +23,7 @@ export default function App() {
   const [result, setResult] = useState<WordSearchResult | null>(null)
   const [notFoundQuery, setNotFoundQuery] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [userName, setUserName] = useState<string | null>(null)
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
 
   // Дашборд аналитики
   const [dashboard, setDashboard] = useState<DashboardStats>({
@@ -57,6 +59,13 @@ export default function App() {
   const [score, setScore] = useState(0)
   const [isSessionFinished, setIsSessionFinished] = useState(false)
 
+  // Placement Test State
+  const [isTestingMode, setIsTestingMode] = useState(false)
+  const [placementQuestions, setPlacementQuestions] = useState<PlacementQuestion[]>([])
+  const [testIndex, setTestIndex] = useState(0)
+  const [testAnswers, setTestAnswers] = useState<{ question_id: number; selected_option: string }[]>([])
+  const [testResult, setTestResult] = useState<PlacementResultResponse | null>(null)
+
   const tg = typeof window !== 'undefined' ? window.Telegram?.WebApp : undefined
   const initData = tg?.initData || ''
 
@@ -72,7 +81,7 @@ export default function App() {
     try {
       tg?.HapticFeedback?.notificationOccurred(type)
     } catch {
-      // Игнорируем вне мобильного клиента Telegram
+      // Игнорируем вне Telegram клиента
     }
   }
 
@@ -80,8 +89,17 @@ export default function App() {
     if (tg) {
       tg.ready()
       tg.expand()
-      if (tg.initDataUnsafe?.user?.first_name) {
-        setUserName(tg.initDataUnsafe.user.first_name)
+      if (initData) {
+        fetch('/api/v1/auth/telegram', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ init_data: initData }),
+        })
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data: UserProfile | null) => {
+            if (data) setUserProfile(data)
+          })
+          .catch((err) => console.error('Auth sync error:', err))
       }
     }
     loadDashboard()
@@ -91,7 +109,7 @@ export default function App() {
 
   const loadDashboard = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/v1/users/me/dashboard`, { headers: getHeaders() })
+      const res = await fetch('/api/v1/users/me/dashboard', { headers: getHeaders() })
       if (res.ok) {
         const data: DashboardStats = await res.json()
         setDashboard(data)
@@ -103,7 +121,7 @@ export default function App() {
 
   const loadDictionaries = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/v1/dictionaries`, { headers: getHeaders() })
+      const res = await fetch('/api/v1/dictionaries', { headers: getHeaders() })
       if (res.ok) {
         const data: UserDictionarySummary[] = await res.json()
         setDictionaries(data)
@@ -115,7 +133,7 @@ export default function App() {
 
   const loadCatalog = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/v1/system-dictionaries`)
+      const res = await fetch('/api/v1/system-dictionaries')
       if (res.ok) {
         const data: SystemDictionarySummary[] = await res.json()
         setCatalog(data)
@@ -127,7 +145,7 @@ export default function App() {
 
   const loadWordProgress = async (wordId: string) => {
     try {
-      const res = await fetch(`${API_BASE}/api/v1/words/${wordId}/progress`, { headers: getHeaders() })
+      const res = await fetch(`/api/v1/words/${wordId}/progress`, { headers: getHeaders() })
       if (res.ok) {
         const data: WordProgress = await res.json()
         setCurrentWordProgress(data)
@@ -139,7 +157,7 @@ export default function App() {
 
   const handleUpdateWordStatus = async (wordId: string, newStatus: 'new' | 'learning' | 'mastered') => {
     try {
-      const res = await fetch(`${API_BASE}/api/v1/words/${wordId}/progress`, {
+      const res = await fetch(`/api/v1/words/${wordId}/progress`, {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify({ status: newStatus }),
@@ -154,6 +172,7 @@ export default function App() {
     }
   }
 
+  // --- Learning Session Logic ---
   const startLearningSession = async (dictionaryId?: string) => {
     setLoading(true)
     setError(null)
@@ -168,17 +187,13 @@ export default function App() {
 
     try {
       const url = dictionaryId
-        ? `${API_BASE}/api/v1/learning/session?dictionary_id=${dictionaryId}&limit=6`
-        : `${API_BASE}/api/v1/learning/session?limit=6`
+        ? `/api/v1/learning/session?dictionary_id=${dictionaryId}&limit=6`
+        : `/api/v1/learning/session?limit=6`
       const res = await fetch(url, { headers: getHeaders() })
       if (res.ok) {
         const data: LearningSessionResponse = await res.json()
-        if (data.cards.length === 0) {
-          alert('В выбранном словаре нет доступных слов для тренировки.')
-        } else {
-          setLearningSession(data.cards)
-          setActiveTab('learning')
-        }
+        setLearningSession(data.cards)
+        setActiveTab('learning')
       } else {
         throw new Error('Не удалось сформировать сессию обучения')
       }
@@ -230,7 +245,7 @@ export default function App() {
     }
 
     try {
-      await fetch(`${API_BASE}/api/v1/learning/submit-answer`, {
+      await fetch('/api/v1/learning/submit-answer', {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify({
@@ -270,10 +285,61 @@ export default function App() {
     setUsedTokenIndices(usedTokenIndices.filter((idx) => idx !== tokenIndexInBank))
   }
 
+  // --- Placement Test Logic ---
+  const startPlacementTest = async () => {
+    setLoading(true)
+    setTestResult(null)
+    setTestIndex(0)
+    setTestAnswers([])
+    try {
+      const res = await fetch('/api/v1/placement/test')
+      if (res.ok) {
+        const data: PlacementTestResponse = await res.json()
+        setPlacementQuestions(data.questions)
+        setIsTestingMode(true)
+      }
+    } catch (err) {
+      console.error('Ошибка старта теста:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSelectTestOption = async (option: string) => {
+    const q = placementQuestions[testIndex]
+    const updatedAnswers = [...testAnswers, { question_id: q.id, selected_option: option }]
+    setTestAnswers(updatedAnswers)
+
+    if (testIndex + 1 < placementQuestions.length) {
+      setTestIndex(testIndex + 1)
+    } else {
+      // Отправляем результат
+      setLoading(true)
+      try {
+        const res = await fetch('/api/v1/placement/submit', {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify({ answers: updatedAnswers }),
+        })
+        if (res.ok) {
+          const resultData: PlacementResultResponse = await res.json()
+          setTestResult(resultData)
+          if (userProfile) {
+            setUserProfile({ ...userProfile, cefr_level: resultData.cefr_level })
+          }
+        }
+      } catch (err) {
+        console.error('Ошибка отправки результатов теста:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+  }
+
   const loadDictionaryDetail = async (id: string) => {
     setLoading(true)
     try {
-      const res = await fetch(`${API_BASE}/api/v1/dictionaries/${id}`, { headers: getHeaders() })
+      const res = await fetch(`/api/v1/dictionaries/${id}`, { headers: getHeaders() })
       if (res.ok) {
         const data: UserDictionaryDetail = await res.json()
         setSelectedDict(data)
@@ -288,7 +354,7 @@ export default function App() {
   const loadCatalogDetail = async (id: string) => {
     setLoading(true)
     try {
-      const res = await fetch(`${API_BASE}/api/v1/system-dictionaries/${id}`)
+      const res = await fetch(`/api/v1/system-dictionaries/${id}`)
       if (res.ok) {
         const data: SystemDictionaryDetail = await res.json()
         setSelectedCatalog(data)
@@ -303,7 +369,7 @@ export default function App() {
   const handleCopySystemDict = async (id: string) => {
     setCopying(true)
     try {
-      const res = await fetch(`${API_BASE}/api/v1/system-dictionaries/${id}/copy`, {
+      const res = await fetch(`/api/v1/system-dictionaries/${id}/copy`, {
         method: 'POST',
         headers: getHeaders(),
       })
@@ -311,6 +377,7 @@ export default function App() {
         await loadDictionaries()
         await loadDashboard()
         setSelectedCatalog(null)
+        setIsTestingMode(false)
         setActiveTab('dictionaries')
       } else {
         alert('Не удалось скопировать словарь')
@@ -325,7 +392,7 @@ export default function App() {
   const handleCreateDictionary = async () => {
     if (!newDictTitle.trim()) return
     try {
-      const res = await fetch(`${API_BASE}/api/v1/dictionaries`, {
+      const res = await fetch('/api/v1/dictionaries', {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify({ title: newDictTitle.trim() }),
@@ -345,7 +412,7 @@ export default function App() {
   const handleAddWordToDict = async (dictId: string) => {
     if (!result) return
     try {
-      const res = await fetch(`${API_BASE}/api/v1/dictionaries/${dictId}/words`, {
+      const res = await fetch(`/api/v1/dictionaries/${dictId}/words`, {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify({ word_id: result.id }),
@@ -367,7 +434,7 @@ export default function App() {
 
   const handleDeleteWordFromDict = async (dictId: string, wordId: string) => {
     try {
-      const res = await fetch(`${API_BASE}/api/v1/dictionaries/${dictId}/words/${wordId}`, {
+      const res = await fetch(`/api/v1/dictionaries/${dictId}/words/${wordId}`, {
         method: 'DELETE',
         headers: getHeaders(),
       })
@@ -398,7 +465,7 @@ export default function App() {
 
     try {
       const response = await fetch(
-        `${API_BASE}/api/v1/words/search?query=${encodeURIComponent(target)}`,
+        `/api/v1/words/search?query=${encodeURIComponent(target)}`,
         { headers: getHeaders() }
       )
 
@@ -433,557 +500,684 @@ export default function App() {
 
   return (
     <div className="app-container">
-      {userName && <div className="user-banner">Привет, {userName}! 👋</div>}
-
-      <div className="dashboard-card">
-        <div className="stat-item">
-          <span className="stat-value">📚 {dashboard.total_words_in_dicts}</span>
-          <span className="stat-label">В словарях</span>
-        </div>
-        <div className="stat-item">
-          <span className="stat-value">📖 {dashboard.words_learning}</span>
-          <span className="stat-label">Учу</span>
-        </div>
-        <div className="stat-item">
-          <span className="stat-value">✅ {dashboard.words_mastered}</span>
-          <span className="stat-label">Выучено</span>
-        </div>
+      {/* Шапка с пользователем и уровнем CEFR */}
+      <div className="user-banner-row">
+        <span>{userProfile ? `Привет, ${userProfile.first_name}! 👋` : ''}</span>
+        {userProfile?.cefr_level && (
+          <span className="level-badge">Уровень: {userProfile.cefr_level}</span>
+        )}
       </div>
 
-      <div className="tab-nav">
-        <button
-          className={`tab-btn ${activeTab === 'search' ? 'active' : ''}`}
-          onClick={() => {
-            setActiveTab('search')
-            setSelectedDict(null)
-            setSelectedCatalog(null)
-            loadDashboard()
-          }}
-        >
-          🔍 Поиск
-        </button>
-        <button
-          className={`tab-btn ${activeTab === 'learning' ? 'active' : ''}`}
-          onClick={() => startLearningSession()}
-        >
-          🎓 Учить
-        </button>
-        <button
-          className={`tab-btn ${activeTab === 'dictionaries' ? 'active' : ''}`}
-          onClick={() => {
-            setActiveTab('dictionaries')
-            setSelectedCatalog(null)
-            loadDictionaries()
-            loadDashboard()
-          }}
-        >
-          📚 Мои ({dictionaries.length})
-        </button>
-        <button
-          className={`tab-btn ${activeTab === 'catalog' ? 'active' : ''}`}
-          onClick={() => {
-            setActiveTab('catalog')
-            setSelectedDict(null)
-            loadCatalog()
-          }}
-        >
-          🌟 Каталог ({catalog.length})
-        </button>
-      </div>
-
-      {activeTab === 'search' && (
-        <>
-          <form
-            className="search-form"
-            onSubmit={(e) => {
-              e.preventDefault()
-              handleSearch()
-            }}
-          >
-            <input
-              type="text"
-              className="search-input"
-              placeholder="Введите английское слово..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              autoFocus
-            />
-            <button type="submit" className="search-btn" disabled={loading}>
-              Найти
-            </button>
-          </form>
-
-          <div className="hints">
-            <span>Попробуйте:</span>
-            {['apple', 'run', 'set'].map((w) => (
-              <span
-                key={w}
-                className="hint-chip"
-                onClick={() => {
-                  setQuery(w)
-                  handleSearch(w)
-                }}
-              >
-                {w}
-              </span>
-            ))}
-          </div>
-
-          {loading && (
-            <div className="state-box">
-              <div className="spinner"></div>
-              <p className="state-desc">Ищем слово в словаре...</p>
-            </div>
-          )}
-
-          {error && (
-            <div className="state-box">
-              <p className="state-title" style={{ color: 'var(--danger)' }}>
-                Ошибка соединения
-              </p>
-              <p className="state-desc">{error}</p>
-              <button className="search-btn" onClick={() => handleSearch()}>
-                Повторить
-              </button>
-            </div>
-          )}
-
-          {notFoundQuery && (
-            <div className="state-box">
-              <p className="state-title">Слово не найдено</p>
-              <p className="state-desc">
-                Слово <b>«{notFoundQuery}»</b> пока отсутствует в словаре.
-              </p>
-            </div>
-          )}
-
-          {result && (
-            <div className="result-container">
-              <div className="word-header-row">
-                <div>
-                  <h2 className="word-title">{result.word}</h2>
-                  {currentWordProgress && (
-                    <span
-                      className={`status-badge status-${currentWordProgress.status}`}
-                      style={{ marginTop: '4px', display: 'inline-block' }}
-                    >
-                      {currentWordProgress.status === 'mastered'
-                        ? 'Выучено'
-                        : currentWordProgress.status === 'learning'
-                        ? 'Изучается'
-                        : 'Новое'}
-                    </span>
-                  )}
-                </div>
-
-                <div className="action-buttons">
-                  {currentWordProgress?.status !== 'mastered' ? (
-                    <button
-                      className="btn-secondary"
-                      onClick={() => handleUpdateWordStatus(result.id, 'mastered')}
-                    >
-                      ✓ Выучено
-                    </button>
-                  ) : (
-                    <button
-                      className="btn-secondary"
-                      onClick={() => handleUpdateWordStatus(result.id, 'learning')}
-                    >
-                      📖 В изучение
-                    </button>
-                  )}
-                  <button
-                    className="btn-secondary"
-                    onClick={() => setShowAddModal(true)}
-                  >
-                    + В словарь
-                  </button>
-                </div>
-              </div>
-
-              <div className="senses-list" style={{ marginTop: '14px' }}>
-                {result.senses.map((sense) => (
-                  <div key={sense.id} className="sense-card">
-                    <div className="sense-top">
-                      <span className="pos-badge">{sense.part_of_speech}</span>
-                      {sense.transcription && (
-                        <span className="transcription">{sense.transcription}</span>
-                      )}
-                    </div>
-                    <div className="translations">
-                      {sense.translations_ru.join(', ')}
-                    </div>
-                    <div className="definition">{sense.definition_en}</div>
-                    {sense.example_en && (
-                      <div className="example-box">
-                        <div className="example-en">“{sense.example_en}”</div>
-                        {sense.example_ru && (
-                          <div className="example-ru">{sense.example_ru}</div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </>
-      )}
-
-      {activeTab === 'learning' && (
+      {/* Экран прохождения Placement Test */}
+      {isTestingMode ? (
         <div className="learning-screen">
           {loading && (
             <div className="state-box">
               <div className="spinner"></div>
-              <p className="state-desc">Подбираем упражнения...</p>
+              <p className="state-desc">Загрузка теста...</p>
             </div>
           )}
 
-          {!loading && isSessionFinished && (
+          {!loading && testResult && (
             <div className="state-box">
-              <h2 style={{ fontSize: '24px' }}>Тренировка завершена! 🎉</h2>
-              <p className="state-desc" style={{ fontSize: '16px' }}>
-                Ваш результат: <b>{score}</b> из <b>{learningSession.length}</b> верно!
+              <h2 style={{ fontSize: '24px' }}>Тест завершён! 🚀</h2>
+              <div
+                className="level-badge"
+                style={{ fontSize: '18px', padding: '6px 14px', margin: '8px 0' }}
+              >
+                {testResult.level_title}
+              </div>
+              <p className="state-desc" style={{ fontSize: '15px' }}>
+                {testResult.description}
               </p>
-              <div style={{ display: 'flex', gap: '8px', marginTop: '14px' }}>
-                <button
-                  className="btn-primary"
-                  onClick={() => startLearningSession()}
-                >
-                  Ещё раз
-                </button>
+              <p style={{ color: 'var(--tg-hint)', fontSize: '13px' }}>
+                Правильных ответов: {testResult.score} из {testResult.total}
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', marginTop: '14px' }}>
+                {testResult.recommended_dictionary_id && (
+                  <button
+                    className="btn-primary"
+                    onClick={() => handleCopySystemDict(testResult.recommended_dictionary_id!)}
+                  >
+                    📥 Добавить словарь уровня {testResult.cefr_level}
+                  </button>
+                )}
                 <button
                   className="btn-secondary"
-                  onClick={() => setActiveTab('search')}
+                  onClick={() => setIsTestingMode(false)}
                 >
-                  В меню
+                  В главное меню
                 </button>
               </div>
             </div>
           )}
 
-          {!loading && !isSessionFinished && currentCard && (
+          {!loading && !testResult && placementQuestions.length > 0 && (
             <>
               <div className="learning-progress-bar-bg">
                 <div
                   className="learning-progress-bar-fill"
                   style={{
-                    width: `${((currentIndex + 1) / learningSession.length) * 100}%`,
+                    width: `${((testIndex + 1) / placementQuestions.length) * 100}%`,
                   }}
                 ></div>
               </div>
 
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  fontSize: '13px',
-                  color: 'var(--tg-hint)',
-                }}
-              >
-                <span>
-                  Вопрос {currentIndex + 1} из {learningSession.length}
-                </span>
-                <span className="exercise-type-tag">
-                  {getExerciseBadgeText(currentCard.exercise_type)}
-                </span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--tg-hint)' }}>
+                <span>Вопрос {testIndex + 1} из {placementQuestions.length}</span>
+                <span className="level-badge">{placementQuestions[testIndex].level}</span>
               </div>
 
               <div className="quiz-card">
-                <div className="prompt-main">{currentCard.prompt_main}</div>
-                {currentCard.prompt_sub && (
-                  <div className="prompt-sub">{currentCard.prompt_sub}</div>
-                )}
+                <div className="prompt-main">{placementQuestions[testIndex].word}</div>
+                <div className="prompt-sub">{placementQuestions[testIndex].prompt}</div>
 
-                {currentCard.exercise_type === 'multiple_choice' && (
-                  <div className="options-grid" style={{ marginTop: '10px' }}>
-                    {currentCard.options.map((opt, idx) => {
-                      let btnClass = 'option-btn'
-                      if (isAnswerChecked) {
-                        if (opt === currentCard.target_answer) {
-                          btnClass += ' selected-correct'
-                        } else if (opt === selectedOption) {
-                          btnClass += ' selected-wrong'
-                        }
-                      } else if (selectedOption === opt) {
-                        btnClass += ' selected-correct'
-                      }
-                      return (
-                        <button
-                          key={idx}
-                          className={btnClass}
-                          disabled={isAnswerChecked}
-                          onClick={() => setSelectedOption(opt)}
-                        >
-                          {opt}
-                        </button>
-                      )
-                    })}
-                  </div>
-                )}
-
-                {(currentCard.exercise_type === 'letter_scramble' ||
-                  currentCard.exercise_type === 'missing_letters' ||
-                  currentCard.exercise_type === 'sentence_reorder') && (
-                  <div style={{ marginTop: '12px' }}>
-                    <div className="chips-assembly-area">
-                      {assembledTokens.length === 0 ? (
-                        <span style={{ color: 'var(--tg-hint)', fontSize: '13px' }}>
-                          Нажимайте на элементы внизу, чтобы сложить ответ
-                        </span>
-                      ) : (
-                        assembledTokens.map((tok, i) => (
-                          <span
-                            key={i}
-                            className="chip-item"
-                            onClick={() => handleRemoveToken(i)}
-                          >
-                            {tok} ✕
-                          </span>
-                        ))
-                      )}
-                    </div>
-
-                    <div className="chips-bank">
-                      {currentCard.tokens.map((tok, i) => {
-                        const isUsed = usedTokenIndices.includes(i)
-                        return (
-                          <button
-                            key={i}
-                            className={`chip-item ${isUsed ? 'used' : ''}`}
-                            disabled={isUsed || isAnswerChecked}
-                            onClick={() => handleTokenClick(tok, i)}
-                          >
-                            {tok}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {isAnswerChecked && (
-                  <div
-                    className={`feedback-banner ${
-                      isCurrentCorrect ? 'correct' : 'wrong'
-                    }`}
-                  >
-                    {isCurrentCorrect
-                      ? 'Правильно! Отличная работа 👍'
-                      : `Неверно. Правильный ответ: ${currentCard.target_answer}`}
-                  </div>
-                )}
+                <div className="options-grid">
+                  {placementQuestions[testIndex].options.map((opt, i) => (
+                    <button
+                      key={i}
+                      className="option-btn"
+                      onClick={() => handleSelectTestOption(opt)}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              {!isAnswerChecked ? (
-                <button
-                  className="btn-primary"
-                  onClick={handleCheckAnswer}
-                >
-                  Проверить
-                </button>
-              ) : (
-                <button
-                  className="btn-primary"
-                  onClick={handleNextQuestion}
-                >
-                  {currentIndex + 1 < learningSession.length ? 'Далее ➔' : 'Завершить'}
-                </button>
-              )}
+              <button
+                className="btn-secondary"
+                style={{ alignSelf: 'center' }}
+                onClick={() => setIsTestingMode(false)}
+              >
+                Прервать тест
+              </button>
             </>
           )}
         </div>
-      )}
+      ) : (
+        <>
+          {/* Баннер-приглашение пройти Placement Test */}
+          {!userProfile?.cefr_level && (
+            <div className="placement-banner" onClick={startPlacementTest}>
+              <div>
+                <div className="placement-banner-title">🎯 Определите свой уровень (A1–C2)</div>
+                <div className="placement-banner-desc">Быстрый тест на 2 минуты для подбора словаря</div>
+              </div>
+              <span style={{ fontSize: '18px', color: '#2563eb' }}>➔</span>
+            </div>
+          )}
 
-      {activeTab === 'dictionaries' && (
-        <div>
-          {!selectedDict ? (
-            <div className="dict-list">
-              <div style={{ display: 'flex', gap: '8px' }}>
+          {/* Сводный персональный дашборд */}
+          <div className="dashboard-card">
+            <div className="stat-item">
+              <span className="stat-value">📚 {dashboard.total_words_in_dicts}</span>
+              <span className="stat-label">В словарях</span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-value">📖 {dashboard.words_learning}</span>
+              <span className="stat-label">Учу</span>
+            </div>
+            <div className="stat-item">
+              <span className="stat-value">✅ {dashboard.words_mastered}</span>
+              <span className="stat-label">Выучено</span>
+            </div>
+          </div>
+
+          {/* Вкладки навигации */}
+          <div className="tab-nav">
+            <button
+              className={`tab-btn ${activeTab === 'search' ? 'active' : ''}`}
+              onClick={() => {
+                setActiveTab('search')
+                setSelectedDict(null)
+                setSelectedCatalog(null)
+                loadDashboard()
+              }}
+            >
+              🔍 Поиск
+            </button>
+            <button
+              className={`tab-btn ${activeTab === 'learning' ? 'active' : ''}`}
+              onClick={() => startLearningSession()}
+            >
+              🎓 Учить
+            </button>
+            <button
+              className={`tab-btn ${activeTab === 'dictionaries' ? 'active' : ''}`}
+              onClick={() => {
+                setActiveTab('dictionaries')
+                setSelectedCatalog(null)
+                loadDictionaries()
+                loadDashboard()
+              }}
+            >
+              📚 Мои ({dictionaries.length})
+            </button>
+            <button
+              className={`tab-btn ${activeTab === 'catalog' ? 'active' : ''}`}
+              onClick={() => {
+                setActiveTab('catalog')
+                setSelectedDict(null)
+                loadCatalog()
+              }}
+            >
+              🌟 Каталог ({catalog.length})
+            </button>
+          </div>
+
+          {activeTab === 'search' && (
+            <>
+              <form
+                className="search-form"
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  handleSearch()
+                }}
+              >
                 <input
                   type="text"
                   className="search-input"
-                  placeholder="Новый словарь..."
-                  value={newDictTitle}
-                  onChange={(e) => setNewDictTitle(e.target.value)}
+                  placeholder="Введите английское слово..."
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  autoFocus
                 />
-                <button
-                  className="search-btn"
-                  onClick={handleCreateDictionary}
-                >
-                  Создать
+                <button type="submit" className="search-btn" disabled={loading}>
+                  Найти
                 </button>
+              </form>
+
+              <div className="hints">
+                <span>Попробуйте:</span>
+                {['apple', 'run', 'set'].map((w) => (
+                  <span
+                    key={w}
+                    className="hint-chip"
+                    onClick={() => {
+                      setQuery(w)
+                      handleSearch(w)
+                    }}
+                  >
+                    {w}
+                  </span>
+                ))}
               </div>
 
-              {dictionaries.length === 0 ? (
+              {loading && (
                 <div className="state-box">
-                  <p className="state-title">Нет словарей</p>
+                  <div className="spinner"></div>
+                  <p className="state-desc">Ищем слово в словаре...</p>
+                </div>
+              )}
+
+              {error && (
+                <div className="state-box">
+                  <p className="state-title" style={{ color: 'var(--danger)' }}>
+                    Ошибка соединения
+                  </p>
+                  <p className="state-desc">{error}</p>
+                  <button className="search-btn" onClick={() => handleSearch()}>
+                    Повторить
+                  </button>
+                </div>
+              )}
+
+              {notFoundQuery && (
+                <div className="state-box">
+                  <p className="state-title">Слово не найдено</p>
                   <p className="state-desc">
-                    Создайте свой словарь или выберите готовый во вкладке «Каталог».
+                    Слово <b>«{notFoundQuery}»</b> пока отсутствует в словаре.
                   </p>
                 </div>
-              ) : (
-                dictionaries.map((dict) => (
-                  <div
-                    key={dict.id}
-                    className="dict-card"
-                    onClick={() => loadDictionaryDetail(dict.id)}
-                  >
+              )}
+
+              {result && (
+                <div className="result-container">
+                  <div className="word-header-row">
                     <div>
-                      <div className="dict-title">{dict.title}</div>
-                      <div className="dict-meta">{dict.words_count} слов(а)</div>
+                      <h2 className="word-title">{result.word}</h2>
+                      {currentWordProgress && (
+                        <span
+                          className={`status-badge status-${currentWordProgress.status}`}
+                          style={{ marginTop: '4px', display: 'inline-block' }}
+                        >
+                          {currentWordProgress.status === 'mastered'
+                            ? 'Выучено'
+                            : currentWordProgress.status === 'learning'
+                            ? 'Изучается'
+                            : 'Новое'}
+                        </span>
+                      )}
                     </div>
-                    <span>➔</span>
+
+                    <div className="action-buttons">
+                      {currentWordProgress?.status !== 'mastered' ? (
+                        <button
+                          className="btn-secondary"
+                          onClick={() => handleUpdateWordStatus(result.id, 'mastered')}
+                        >
+                          ✓ Выучено
+                        </button>
+                      ) : (
+                        <button
+                          className="btn-secondary"
+                          onClick={() => handleUpdateWordStatus(result.id, 'learning')}
+                        >
+                          📖 В изучение
+                        </button>
+                      )}
+                      <button
+                        className="btn-secondary"
+                        onClick={() => setShowAddModal(true)}
+                      >
+                        + В словарь
+                      </button>
+                    </div>
                   </div>
-                ))
+
+                  <div className="senses-list" style={{ marginTop: '14px' }}>
+                    {result.senses.map((sense) => (
+                      <div key={sense.id} className="sense-card">
+                        <div className="sense-top">
+                          <span className="pos-badge">{sense.part_of_speech}</span>
+                          {sense.transcription && (
+                            <span className="transcription">{sense.transcription}</span>
+                          )}
+                        </div>
+                        <div className="translations">
+                          {sense.translations_ru.join(', ')}
+                        </div>
+                        <div className="definition">{sense.definition_en}</div>
+                        {sense.example_en && (
+                          <div className="example-box">
+                            <div className="example-en">“{sense.example_en}”</div>
+                            {sense.example_ru && (
+                              <div className="example-ru">{sense.example_ru}</div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {activeTab === 'learning' && (
+            <div className="learning-screen">
+              {loading && (
+                <div className="state-box">
+                  <div className="spinner"></div>
+                  <p className="state-desc">Подбираем упражнения...</p>
+                </div>
+              )}
+
+              {/* Безопасная заглушка при 0 слов */}
+              {!loading && learningSession.length === 0 && (
+                <div className="state-box">
+                  <p className="state-title">Нет слов для тренировки</p>
+                  <p className="state-desc">
+                    Добавьте слова из поиска или сохраните готовый словарь из каталога!
+                  </p>
+                  <button
+                    className="btn-primary"
+                    style={{ marginTop: '10px' }}
+                    onClick={() => setActiveTab('catalog')}
+                  >
+                    🌟 Перейти в каталог
+                  </button>
+                </div>
+              )}
+
+              {!loading && isSessionFinished && (
+                <div className="state-box">
+                  <h2 style={{ fontSize: '24px' }}>Тренировка завершена! 🎉</h2>
+                  <p className="state-desc" style={{ fontSize: '16px' }}>
+                    Ваш результат: <b>{score}</b> из <b>{learningSession.length}</b> верно!
+                  </p>
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '14px' }}>
+                    <button
+                      className="btn-primary"
+                      onClick={() => startLearningSession()}
+                    >
+                      Ещё раз
+                    </button>
+                    <button
+                      className="btn-secondary"
+                      onClick={() => setActiveTab('search')}
+                    >
+                      В меню
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {!loading && !isSessionFinished && currentCard && (
+                <>
+                  <div className="learning-progress-bar-bg">
+                    <div
+                      className="learning-progress-bar-fill"
+                      style={{
+                        width: `${((currentIndex + 1) / learningSession.length) * 100}%`,
+                      }}
+                    ></div>
+                  </div>
+
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      fontSize: '13px',
+                      color: 'var(--tg-hint)',
+                    }}
+                  >
+                    <span>
+                      Вопрос {currentIndex + 1} из {learningSession.length}
+                    </span>
+                    <span className="exercise-type-tag">
+                      {getExerciseBadgeText(currentCard.exercise_type)}
+                    </span>
+                  </div>
+
+                  <div className="quiz-card">
+                    <div className="prompt-main">{currentCard.prompt_main}</div>
+                    {currentCard.prompt_sub && (
+                      <div className="prompt-sub">{currentCard.prompt_sub}</div>
+                    )}
+
+                    {currentCard.exercise_type === 'multiple_choice' && (
+                      <div className="options-grid" style={{ marginTop: '10px' }}>
+                        {currentCard.options.map((opt, idx) => {
+                          let btnClass = 'option-btn'
+                          if (isAnswerChecked) {
+                            if (opt === currentCard.target_answer) {
+                              btnClass += ' selected-correct'
+                            } else if (opt === selectedOption) {
+                              btnClass += ' selected-wrong'
+                            }
+                          } else if (selectedOption === opt) {
+                            btnClass += ' selected-correct'
+                          }
+                          return (
+                            <button
+                              key={idx}
+                              className={btnClass}
+                              disabled={isAnswerChecked}
+                              onClick={() => setSelectedOption(opt)}
+                            >
+                              {opt}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )}
+
+                    {(currentCard.exercise_type === 'letter_scramble' ||
+                      currentCard.exercise_type === 'missing_letters' ||
+                      currentCard.exercise_type === 'sentence_reorder') && (
+                      <div style={{ marginTop: '12px' }}>
+                        <div className="chips-assembly-area">
+                          {assembledTokens.length === 0 ? (
+                            <span style={{ color: 'var(--tg-hint)', fontSize: '13px' }}>
+                              Нажимайте на элементы внизу, чтобы сложить ответ
+                            </span>
+                          ) : (
+                            assembledTokens.map((tok, i) => (
+                              <span
+                                key={i}
+                                className="chip-item"
+                                onClick={() => handleRemoveToken(i)}
+                              >
+                                {tok} ✕
+                              </span>
+                            ))
+                          )}
+                        </div>
+
+                        <div className="chips-bank">
+                          {currentCard.tokens.map((tok, i) => {
+                            const isUsed = usedTokenIndices.includes(i)
+                            return (
+                              <button
+                                key={i}
+                                className={`chip-item ${isUsed ? 'used' : ''}`}
+                                disabled={isUsed || isAnswerChecked}
+                                onClick={() => handleTokenClick(tok, i)}
+                              >
+                                {tok}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {isAnswerChecked && (
+                      <div
+                        className={`feedback-banner ${
+                          isCurrentCorrect ? 'correct' : 'wrong'
+                        }`}
+                      >
+                        {isCurrentCorrect
+                          ? 'Правильно! Отличная работа 👍'
+                          : `Неверно. Правильный ответ: ${currentCard.target_answer}`}
+                      </div>
+                    )}
+                  </div>
+
+                  {!isAnswerChecked ? (
+                    <button
+                      className="btn-primary"
+                      onClick={handleCheckAnswer}
+                    >
+                      Проверить
+                    </button>
+                  ) : (
+                    <button
+                      className="btn-primary"
+                      onClick={handleNextQuestion}
+                    >
+                      {currentIndex + 1 < learningSession.length ? 'Далее ➔' : 'Завершить'}
+                    </button>
+                  )}
+                </>
               )}
             </div>
-          ) : (
+          )}
+
+          {activeTab === 'dictionaries' && (
             <div>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: '16px',
-                }}
-              >
-                <button
-                  className="btn-secondary"
-                  onClick={() => setSelectedDict(null)}
-                >
-                  ← Назад к спискам
-                </button>
-                <button
-                  className="btn-primary"
-                  style={{ padding: '8px 14px', fontSize: '13px' }}
-                  onClick={() => startLearningSession(selectedDict.id)}
-                >
-                  🎓 Учить этот словарь
-                </button>
-              </div>
+              {!selectedDict ? (
+                <div className="dict-list">
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      type="text"
+                      className="search-input"
+                      placeholder="Новый словарь..."
+                      value={newDictTitle}
+                      onChange={(e) => setNewDictTitle(e.target.value)}
+                    />
+                    <button
+                      className="search-btn"
+                      onClick={handleCreateDictionary}
+                    >
+                      Создать
+                    </button>
+                  </div>
 
-              <h3 style={{ fontSize: '18px', marginBottom: '12px' }}>
-                {selectedDict.title}
-              </h3>
-
-              {selectedDict.words.length === 0 ? (
-                <div className="state-box">
-                  <p className="state-desc">В этом словаре пока нет слов.</p>
+                  {dictionaries.length === 0 ? (
+                    <div className="state-box">
+                      <p className="state-title">Нет словарей</p>
+                      <p className="state-desc">
+                        Создайте свой словарь или выберите готовый во вкладке «Каталог».
+                      </p>
+                    </div>
+                  ) : (
+                    dictionaries.map((dict) => (
+                      <div
+                        key={dict.id}
+                        className="dict-card"
+                        onClick={() => loadDictionaryDetail(dict.id)}
+                      >
+                        <div>
+                          <div className="dict-title">{dict.title}</div>
+                          <div className="dict-meta">{dict.words_count} слов(а)</div>
+                        </div>
+                        <span>➔</span>
+                      </div>
+                    ))
+                  )}
                 </div>
               ) : (
-                <div className="senses-list">
-                  {selectedDict.words.map((w) => (
-                    <div key={w.id} className="sense-card">
-                      <div
-                        style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                        }}
-                      >
-                        <h4 style={{ fontSize: '18px', textTransform: 'capitalize' }}>
-                          {w.word}
-                        </h4>
-                        <button
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            color: 'var(--danger)',
-                            cursor: 'pointer',
-                            fontSize: '13px',
-                          }}
-                          onClick={() => handleDeleteWordFromDict(selectedDict.id, w.id)}
-                        >
-                          Удалить
-                        </button>
+                <div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: '16px',
+                    }}
+                  >
+                    <button
+                      className="btn-secondary"
+                      onClick={() => setSelectedDict(null)}
+                    >
+                      ← Назад к спискам
+                    </button>
+                    <button
+                      className="btn-primary"
+                      style={{ padding: '8px 14px', fontSize: '13px' }}
+                      onClick={() => startLearningSession(selectedDict.id)}
+                    >
+                      🎓 Учить этот словарь
+                    </button>
+                  </div>
+
+                  <h3 style={{ fontSize: '18px', marginBottom: '12px' }}>
+                    {selectedDict.title}
+                  </h3>
+
+                  {selectedDict.words.length === 0 ? (
+                    <div className="state-box">
+                      <p className="state-desc">В этом словаре пока нет слов.</p>
+                    </div>
+                  ) : (
+                    <div className="senses-list">
+                      {selectedDict.words.map((w) => (
+                        <div key={w.id} className="sense-card">
+                          <div
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                            }}
+                          >
+                            <h4 style={{ fontSize: '18px', textTransform: 'capitalize' }}>
+                              {w.word}
+                            </h4>
+                            <button
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                color: 'var(--danger)',
+                                cursor: 'pointer',
+                                fontSize: '13px',
+                              }}
+                              onClick={() => handleDeleteWordFromDict(selectedDict.id, w.id)}
+                            >
+                              Удалить
+                            </button>
+                          </div>
+                          <div className="translations">
+                            {w.senses[0]?.translations_ru.join(', ')}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'catalog' && (
+            <div>
+              {!selectedCatalog ? (
+                <div className="dict-list">
+                  {catalog.map((pack) => (
+                    <div
+                      key={pack.id}
+                      className="dict-card"
+                      onClick={() => loadCatalogDetail(pack.id)}
+                    >
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span className="dict-title">{pack.title}</span>
+                          {pack.target_level && (
+                            <span className="level-badge">{pack.target_level}</span>
+                          )}
+                        </div>
+                        <div className="dict-meta">{pack.description}</div>
+                        <div className="dict-meta" style={{ fontWeight: 600 }}>
+                          {pack.words_count} слов(а)
+                        </div>
                       </div>
-                      <div className="translations">
-                        {w.senses[0]?.translations_ru.join(', ')}
-                      </div>
+                      <span>➔</span>
                     </div>
                   ))}
                 </div>
+              ) : (
+                <div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: '16px',
+                    }}
+                  >
+                    <button
+                      className="btn-secondary"
+                      onClick={() => setSelectedCatalog(null)}
+                    >
+                      ← В каталог
+                    </button>
+                    <button
+                      className="btn-primary"
+                      disabled={copying}
+                      onClick={() => handleCopySystemDict(selectedCatalog.id)}
+                    >
+                      {copying ? 'Сохранение...' : '📥 Сохранить себе'}
+                    </button>
+                  </div>
+
+                  <div style={{ marginBottom: '14px' }}>
+                    <h3 style={{ fontSize: '20px' }}>{selectedCatalog.title}</h3>
+                    <p className="state-desc" style={{ textAlign: 'left', marginTop: '4px' }}>
+                      {selectedCatalog.description}
+                    </p>
+                  </div>
+
+                  <div className="senses-list">
+                    {selectedCatalog.words.map((w) => (
+                      <div key={w.id} className="sense-card">
+                        <h4 style={{ fontSize: '18px', textTransform: 'capitalize' }}>
+                          {w.word}
+                        </h4>
+                        <div className="translations">
+                          {w.senses[0]?.translations_ru.join(', ')}
+                        </div>
+                        <div className="definition">{w.senses[0]?.definition_en}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
           )}
-        </div>
-      )}
-
-      {activeTab === 'catalog' && (
-        <div>
-          {!selectedCatalog ? (
-            <div className="dict-list">
-              {catalog.map((pack) => (
-                <div
-                  key={pack.id}
-                  className="dict-card"
-                  onClick={() => loadCatalogDetail(pack.id)}
-                >
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span className="dict-title">{pack.title}</span>
-                      {pack.target_level && (
-                        <span className="level-badge">{pack.target_level}</span>
-                      )}
-                    </div>
-                    <div className="dict-meta">{pack.description}</div>
-                    <div className="dict-meta" style={{ fontWeight: 600 }}>
-                      {pack.words_count} слов(а)
-                    </div>
-                  </div>
-                  <span>➔</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: '16px',
-                }}
-              >
-                <button
-                  className="btn-secondary"
-                  onClick={() => setSelectedCatalog(null)}
-                >
-                  ← В каталог
-                </button>
-                <button
-                  className="btn-primary"
-                  disabled={copying}
-                  onClick={() => handleCopySystemDict(selectedCatalog.id)}
-                >
-                  {copying ? 'Сохранение...' : '📥 Сохранить себе'}
-                </button>
-              </div>
-
-              <div style={{ marginBottom: '14px' }}>
-                <h3 style={{ fontSize: '20px' }}>{selectedCatalog.title}</h3>
-                <p className="state-desc" style={{ textAlign: 'left', marginTop: '4px' }}>
-                  {selectedCatalog.description}
-                </p>
-              </div>
-
-              <div className="senses-list">
-                {selectedCatalog.words.map((w) => (
-                  <div key={w.id} className="sense-card">
-                    <h4 style={{ fontSize: '18px', textTransform: 'capitalize' }}>
-                      {w.word}
-                    </h4>
-                    <div className="translations">
-                      {w.senses[0]?.translations_ru.join(', ')}
-                    </div>
-                    <div className="definition">{w.senses[0]?.definition_en}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+        </>
       )}
 
       {showAddModal && (

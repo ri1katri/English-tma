@@ -13,5 +13,6 @@ class UserResponse(BaseModel):
     first_name: str
     last_name: Optional[str] = None
     username: Optional[str] = None
+    cefr_level: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)

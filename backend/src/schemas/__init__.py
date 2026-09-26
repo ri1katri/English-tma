@@ -11,6 +11,13 @@ from src.schemas.learning import (
     SubmitAnswerRequest,
     SubmitAnswerResponse,
 )
+from src.schemas.placement import (
+    PlacementAnswerItem,
+    PlacementQuestion,
+    PlacementResultResponse,
+    PlacementSubmitRequest,
+    PlacementTestResponse,
+)
 from src.schemas.progress import WordProgressResponse, WordProgressUpdateRequest
 from src.schemas.system_dictionary import (
     SystemDictionaryDetailResponse,
@@ -37,4 +44,9 @@ __all__ = [
     "LearningSessionResponse",
     "SubmitAnswerRequest",
     "SubmitAnswerResponse",
+    "PlacementQuestion",
+    "PlacementTestResponse",
+    "PlacementAnswerItem",
+    "PlacementSubmitRequest",
+    "PlacementResultResponse",
 ]
