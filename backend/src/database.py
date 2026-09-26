@@ -10,6 +10,8 @@ engine = create_async_engine(
     settings.database_url,
     echo=False,
     future=True,
+    pool_pre_ping=True,      # ПЕРЕПРОВЕРЯЕТ СОЕДИНЕНИЕ ПЕРЕД КАЖДЫМ ЗАПРОСОМ
+    pool_recycle=300,        # СБРАСЫВАЕТ СОЕДИНЕНИЯ СТАРШЕ 5 МИНУТ
 )
 
 async_session_maker = async_sessionmaker(
