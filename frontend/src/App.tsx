@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react'
-import {
+import { useEffect, useState } from 'react'
+import type {
   DashboardStats,
   ExerciseType,
   LearningCard,
@@ -10,7 +10,9 @@ import {
   UserDictionarySummary,
   WordProgress,
   WordSearchResult,
-} from './types.ts'
+} from './types'
+
+const API_BASE = import.meta.env.VITE_API_URL || ''
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'search' | 'dictionaries' | 'catalog' | 'learning'>('search')
@@ -89,7 +91,7 @@ export default function App() {
 
   const loadDashboard = async () => {
     try {
-      const res = await fetch('/api/v1/users/me/dashboard', { headers: getHeaders() })
+      const res = await fetch(`${API_BASE}/api/v1/users/me/dashboard`, { headers: getHeaders() })
       if (res.ok) {
         const data: DashboardStats = await res.json()
         setDashboard(data)
@@ -101,7 +103,7 @@ export default function App() {
 
   const loadDictionaries = async () => {
     try {
-      const res = await fetch('/api/v1/dictionaries', { headers: getHeaders() })
+      const res = await fetch(`${API_BASE}/api/v1/dictionaries`, { headers: getHeaders() })
       if (res.ok) {
         const data: UserDictionarySummary[] = await res.json()
         setDictionaries(data)
@@ -113,7 +115,7 @@ export default function App() {
 
   const loadCatalog = async () => {
     try {
-      const res = await fetch('/api/v1/system-dictionaries')
+      const res = await fetch(`${API_BASE}/api/v1/system-dictionaries`)
       if (res.ok) {
         const data: SystemDictionarySummary[] = await res.json()
         setCatalog(data)
@@ -125,7 +127,7 @@ export default function App() {
 
   const loadWordProgress = async (wordId: string) => {
     try {
-      const res = await fetch(`/api/v1/words/${wordId}/progress`, { headers: getHeaders() })
+      const res = await fetch(`${API_BASE}/api/v1/words/${wordId}/progress`, { headers: getHeaders() })
       if (res.ok) {
         const data: WordProgress = await res.json()
         setCurrentWordProgress(data)
@@ -137,7 +139,7 @@ export default function App() {
 
   const handleUpdateWordStatus = async (wordId: string, newStatus: 'new' | 'learning' | 'mastered') => {
     try {
-      const res = await fetch(`/api/v1/words/${wordId}/progress`, {
+      const res = await fetch(`${API_BASE}/api/v1/words/${wordId}/progress`, {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify({ status: newStatus }),
@@ -166,8 +168,8 @@ export default function App() {
 
     try {
       const url = dictionaryId
-        ? `/api/v1/learning/session?dictionary_id=${dictionaryId}&limit=6`
-        : `/api/v1/learning/session?limit=6`
+        ? `${API_BASE}/api/v1/learning/session?dictionary_id=${dictionaryId}&limit=6`
+        : `${API_BASE}/api/v1/learning/session?limit=6`
       const res = await fetch(url, { headers: getHeaders() })
       if (res.ok) {
         const data: LearningSessionResponse = await res.json()
@@ -228,7 +230,7 @@ export default function App() {
     }
 
     try {
-      await fetch('/api/v1/learning/submit-answer', {
+      await fetch(`${API_BASE}/api/v1/learning/submit-answer`, {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify({
@@ -271,7 +273,7 @@ export default function App() {
   const loadDictionaryDetail = async (id: string) => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/v1/dictionaries/${id}`, { headers: getHeaders() })
+      const res = await fetch(`${API_BASE}/api/v1/dictionaries/${id}`, { headers: getHeaders() })
       if (res.ok) {
         const data: UserDictionaryDetail = await res.json()
         setSelectedDict(data)
@@ -286,7 +288,7 @@ export default function App() {
   const loadCatalogDetail = async (id: string) => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/v1/system-dictionaries/${id}`)
+      const res = await fetch(`${API_BASE}/api/v1/system-dictionaries/${id}`)
       if (res.ok) {
         const data: SystemDictionaryDetail = await res.json()
         setSelectedCatalog(data)
@@ -301,7 +303,7 @@ export default function App() {
   const handleCopySystemDict = async (id: string) => {
     setCopying(true)
     try {
-      const res = await fetch(`/api/v1/system-dictionaries/${id}/copy`, {
+      const res = await fetch(`${API_BASE}/api/v1/system-dictionaries/${id}/copy`, {
         method: 'POST',
         headers: getHeaders(),
       })
@@ -323,7 +325,7 @@ export default function App() {
   const handleCreateDictionary = async () => {
     if (!newDictTitle.trim()) return
     try {
-      const res = await fetch('/api/v1/dictionaries', {
+      const res = await fetch(`${API_BASE}/api/v1/dictionaries`, {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify({ title: newDictTitle.trim() }),
@@ -343,7 +345,7 @@ export default function App() {
   const handleAddWordToDict = async (dictId: string) => {
     if (!result) return
     try {
-      const res = await fetch(`/api/v1/dictionaries/${dictId}/words`, {
+      const res = await fetch(`${API_BASE}/api/v1/dictionaries/${dictId}/words`, {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify({ word_id: result.id }),
@@ -365,7 +367,7 @@ export default function App() {
 
   const handleDeleteWordFromDict = async (dictId: string, wordId: string) => {
     try {
-      const res = await fetch(`/api/v1/dictionaries/${dictId}/words/${wordId}`, {
+      const res = await fetch(`${API_BASE}/api/v1/dictionaries/${dictId}/words/${wordId}`, {
         method: 'DELETE',
         headers: getHeaders(),
       })
@@ -396,7 +398,7 @@ export default function App() {
 
     try {
       const response = await fetch(
-        `/api/v1/words/search?query=${encodeURIComponent(target)}`,
+        `${API_BASE}/api/v1/words/search?query=${encodeURIComponent(target)}`,
         { headers: getHeaders() }
       )
 
