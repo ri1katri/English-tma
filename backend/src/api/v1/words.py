@@ -37,9 +37,9 @@ class WordSearchResponse(BaseModel):
 
 
 async def fetch_external_word(lemma: str) -> Optional[dict]:
-    encoded_word = urllib.parse.quote(lemma)
+    encoded_word = urllib.parse.quote(lemma.lower().strip())
     url = f"https://api.dictionaryapi.dev/api/v2/entries/en/{encoded_word}"
-    async with httpx.AsyncClient(timeout=5.0) as client:
+    async with httpx.AsyncClient(timeout=6.0) as client:
         try:
             resp = await client.get(url)
             if resp.status_code == 200:
@@ -58,7 +58,7 @@ async def search_word(
 ):
     clean_lemma = query.strip().lower()
 
-    # 1. Поиск в локальной базе данных
+    # 1. Поиск в существующей базе данных
     stmt = (
         select(Word)
         .options(selectinload(Word.senses))
@@ -74,16 +74,15 @@ async def search_word(
             senses=word.senses,
         )
 
-    # 2. Автоматический Fallback: запрос во внешний Free Dictionary API
+    # 2. Автоматическая подгрузка из открытого API
     ext_data = await fetch_external_word(clean_lemma)
 
     if not ext_data:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Слово «{clean_lemma}» не найдено",
+            detail=f"Слово «{clean_lemma}» не найдено в словарях",
         )
 
-    # Извлечение транскрипции
     transcription = ext_data.get("phonetic")
     if not transcription and ext_data.get("phonetics"):
         for ph in ext_data["phonetics"]:
@@ -91,19 +90,18 @@ async def search_word(
                 transcription = ph["text"]
                 break
 
-    # Создание или обновление родительского слова
     if not word:
         word = Word(lemma=clean_lemma)
         db.add(word)
         await db.flush()
 
     senses_to_add: List[WordSense] = []
+    meanings = ext_data.get("meanings", [])
     order_idx = 0
 
-    meanings = ext_data.get("meanings", [])
-    for meaning in meanings:
-        pos = meaning.get("part_of_speech", meaning.get("partOfSpeech", "noun"))
-        definitions = meaning.get("definitions", [])
+    for m in meanings:
+        pos = m.get("part_of_speech", m.get("partOfSpeech", "noun"))
+        definitions = m.get("definitions", [])
 
         for d in definitions[:2]:
             def_text = d.get("definition", "")
@@ -113,11 +111,14 @@ async def search_word(
             if not def_text:
                 continue
 
+            # Если русские значения отсутствуют во внешнем API, сохраняем английскую лемму как базу
+            translations = [clean_lemma]
+
             sense = WordSense(
                 word_id=word.id,
                 part_of_speech=pos,
                 transcription=transcription,
-                translations_ru=[clean_lemma],  # Базовый перевод-транслит/лемма
+                translations_ru=translations,
                 definition_en=def_text,
                 example_en=example_text,
                 example_ru=None,
@@ -128,23 +129,24 @@ async def search_word(
             order_idx += 1
 
     if not senses_to_add:
-        sense = WordSense(
-            word_id=word.id,
-            part_of_speech="noun",
-            transcription=transcription,
-            translations_ru=[clean_lemma],
-            definition_en=f"Definition of {clean_lemma}",
-            example_en=None,
-            example_ru=None,
-            synonyms=[],
-            order_index=0,
+        senses_to_add.append(
+            WordSense(
+                word_id=word.id,
+                part_of_speech="noun",
+                transcription=transcription,
+                translations_ru=[clean_lemma],
+                definition_en=f"Meaning of {clean_lemma}",
+                example_en=None,
+                example_ru=None,
+                synonyms=[],
+                order_index=0,
+            )
         )
-        senses_to_add.append(sense)
 
     db.add_all(senses_to_add)
     await db.commit()
 
-    # Загружаем свежие связи
+    # Загружаем сохраненный объект со всеми связями
     stmt = (
         select(Word)
         .options(selectinload(Word.senses))

@@ -8,8 +8,16 @@ import type {
   WordSearchResult,
 } from './types'
 
-// Явный адрес бэкенда на Render (чтобы запросы с Vercel шли точно на API)
 const API_BASE = 'https://english-tma-api.onrender.com'
+
+interface LearningQuestion {
+  question_id: string
+  word_id: string
+  exercise_type: string
+  prompt_main: string
+  prompt_sub?: string | null
+  options: string[]
+}
 
 interface PlacementQuestion {
   id: number
@@ -28,7 +36,7 @@ interface PlacementResult {
 }
 
 export default function App() {
-  const [tab, setTab] = useState<'search' | 'my' | 'catalog'>('search')
+  const [tab, setTab] = useState<'search' | 'learning' | 'my' | 'catalog'>('search')
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<WordSearchResult | null>(null)
@@ -47,6 +55,17 @@ export default function App() {
   const [wordToAdd, setWordToAdd] = useState<WordSearchResult | null>(null)
   const [newDictTitle, setNewDictTitle] = useState('')
 
+  // Состояние сессии обучения («Учить»)
+  const [learningQuestions, setLearningQuestions] = useState<LearningQuestion[]>([])
+  const [currentLearnIdx, setCurrentLearnIdx] = useState(0)
+  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null)
+  const [isAnswerChecked, setIsAnswerChecked] = useState(false)
+  const [isAnswerCorrect, setIsAnswerCorrect] = useState<boolean | null>(null)
+  const [correctAnswerText, setCorrectAnswerText] = useState<string>('')
+  const [learningScore, setLearningScore] = useState(0)
+  const [isLearnFinished, setIsLearnFinished] = useState(false)
+
+  // Placement Test
   const [isTesting, setIsTesting] = useState(false)
   const [testQuestions, setTestQuestions] = useState<PlacementQuestion[]>([])
   const [currentQIndex, setCurrentQIndex] = useState(0)
@@ -116,9 +135,85 @@ export default function App() {
         setResult(data)
       }
     } catch (err: any) {
-      setError(err.message || 'Ошибка соединения')
+      setError(err.message || 'Ошибка соединения с сервером')
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Запуск сессии обучения
+  const startLearning = async (dictionaryId?: string) => {
+    setLoading(true)
+    setError(null)
+    setIsLearnFinished(false)
+    setCurrentLearnIdx(0)
+    setLearningScore(0)
+    setSelectedAnswer(null)
+    setIsAnswerChecked(false)
+    setIsAnswerCorrect(null)
+
+    try {
+      const url = dictionaryId
+        ? `${API_BASE}/api/v1/learning/session?dictionary_id=${dictionaryId}&limit=6`
+        : `${API_BASE}/api/v1/learning/session?limit=6`
+      const res = await fetch(url, { headers: getHeaders() })
+      if (res.ok) {
+        const data = await res.json()
+        if (!data.questions || data.questions.length === 0) {
+          alert('В словаре пока нет слов для изучения. Добавьте слова через Поиск или Каталог!')
+        } else {
+          setLearningQuestions(data.questions)
+          setTab('learning')
+        }
+      } else {
+        alert('Не удалось загрузить тренировку')
+      }
+    } catch {
+      alert('Ошибка соединения при запуске тренировки')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleCheckAnswer = async (selected: string) => {
+    if (isAnswerChecked) return
+    setSelectedAnswer(selected)
+    const currentQ = learningQuestions[currentLearnIdx]
+
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/learning/submit-answer`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({
+          word_id: currentQ.word_id,
+          selected_answer: selected,
+          exercise_type: currentQ.exercise_type,
+        }),
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        setIsAnswerCorrect(data.is_correct)
+        setCorrectAnswerText(data.correct_answer)
+        if (data.is_correct) {
+          setLearningScore((s) => s + 1)
+        }
+        setIsAnswerChecked(true)
+        loadDashboard()
+      }
+    } catch {
+      alert('Ошибка сохранения ответа')
+    }
+  }
+
+  const handleNextLearnQuestion = () => {
+    if (currentLearnIdx + 1 < learningQuestions.length) {
+      setCurrentLearnIdx((i) => i + 1)
+      setSelectedAnswer(null)
+      setIsAnswerChecked(false)
+      setIsAnswerCorrect(null)
+    } else {
+      setIsLearnFinished(true)
     }
   }
 
@@ -162,14 +257,14 @@ export default function App() {
         loadDictionaries()
         loadDashboard()
       } else {
-        alert('Слово уже в словаре')
+        alert('Слово уже находится в этом словаре')
       }
     } catch {
       alert('Не удалось добавить слово')
     }
   }
 
-  // Placement Test
+  // Тестирование уровня
   const startTest = async () => {
     try {
       setLoading(true)
@@ -250,9 +345,11 @@ export default function App() {
     } catch {}
   }
 
+  const currentLearnQ = learningQuestions[currentLearnIdx]
+
   return (
     <div className="app-container">
-      {/* Шапка */}
+      {/* Шапка с дашбордом */}
       {!isTesting && (
         <div className="dashboard-banner">
           <div className="banner-top" onClick={startTest} style={{ cursor: 'pointer' }}>
@@ -267,7 +364,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Экран теста */}
+      {/* Режим Placement Test */}
       {isTesting && (
         <div className="test-container">
           {!testResult ? (
@@ -317,11 +414,14 @@ export default function App() {
         </div>
       )}
 
-      {/* Вкладки */}
+      {/* Навигация вкладок */}
       {!isTesting && (
         <div className="nav-tabs">
           <button className={`nav-btn ${tab === 'search' ? 'active' : ''}`} onClick={() => setTab('search')}>
             🔍 Поиск
+          </button>
+          <button className={`nav-btn ${tab === 'learning' ? 'active' : ''}`} onClick={() => startLearning()}>
+            🎓 Учить
           </button>
           <button className={`nav-btn ${tab === 'my' ? 'active' : ''}`} onClick={() => { setTab('my'); setSelectedMyDict(null) }}>
             📚 Мои ({myDictionaries.length})
@@ -332,7 +432,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Поиск */}
+      {/* Вкладка 1: Поиск */}
       {!isTesting && tab === 'search' && (
         <div>
           <form className="search-form" onSubmit={(e) => { e.preventDefault(); handleSearch() }}>
@@ -393,7 +493,91 @@ export default function App() {
         </div>
       )}
 
-      {/* Мои словари */}
+      {/* Вкладка 2: Учить (Learning Engine) */}
+      {!isTesting && tab === 'learning' && (
+        <div>
+          {loading && <div className="state-box"><div className="spinner"></div><p>Загрузка сессии...</p></div>}
+
+          {!loading && isLearnFinished && (
+            <div className="test-result-box" style={{ background: '#fff', borderRadius: '14px', padding: '24px 16px' }}>
+              <h2>Сессия завершена! 🎉</h2>
+              <p style={{ margin: '10px 0', fontSize: '16px' }}>
+                Правильно: <b>{learningScore}</b> из <b>{learningQuestions.length}</b>
+              </p>
+              <button className="search-btn" style={{ width: '100%', marginTop: '12px' }} onClick={() => startLearning()}>
+                Учить ещё раз
+              </button>
+              <button className="btn-cancel" style={{ marginTop: '8px' }} onClick={() => setTab('search')}>
+                В меню
+              </button>
+            </div>
+          )}
+
+          {!loading && !isLearnFinished && currentLearnQ && (
+            <div className="test-container">
+              <div className="test-header">
+                <span>Вопрос {currentLearnIdx + 1} из {learningQuestions.length}</span>
+                <span className="badge-level">Тренировка</span>
+              </div>
+
+              <h2 className="test-word">{currentLearnQ.prompt_main}</h2>
+              {currentLearnQ.prompt_sub && (
+                <p className="test-prompt">{currentLearnQ.prompt_sub}</p>
+              )}
+
+              <div className="test-options" style={{ marginTop: '14px' }}>
+                {currentLearnQ.options.map((opt, i) => {
+                  let btnBg = '#f4f4f7'
+                  let borderCol = 'var(--border)'
+
+                  if (isAnswerChecked) {
+                    if (opt === correctAnswerText) {
+                      btnBg = '#d1fae5'
+                      borderCol = 'var(--accent-green)'
+                    } else if (opt === selectedAnswer) {
+                      btnBg = '#fee2e2'
+                      borderCol = 'var(--danger)'
+                    }
+                  }
+
+                  return (
+                    <button
+                      key={i}
+                      className="test-opt-btn"
+                      disabled={isAnswerChecked}
+                      style={{ background: btnBg, borderColor: borderCol }}
+                      onClick={() => handleCheckAnswer(opt)}
+                    >
+                      {opt}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {isAnswerChecked && (
+                <div style={{ marginTop: '12px' }}>
+                  <div style={{
+                    padding: '10px',
+                    borderRadius: '10px',
+                    textAlign: 'center',
+                    fontWeight: 600,
+                    background: isAnswerCorrect ? '#d1fae5' : '#fee2e2',
+                    color: isAnswerCorrect ? '#065f46' : '#991b1b',
+                    marginBottom: '12px'
+                  }}>
+                    {isAnswerCorrect ? 'Отлично! Верный ответ 👍' : `Ошибка! Правильно: ${correctAnswerText}`}
+                  </div>
+                  <button className="search-btn" style={{ width: '100%' }} onClick={handleNextLearnQuestion}>
+                    {currentLearnIdx + 1 < learningQuestions.length ? 'Следующий вопрос ➔' : 'Завершить тренировку'}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Вкладка 3: Мои словари */}
       {!isTesting && tab === 'my' && (
         <div>
           {!selectedMyDict ? (
@@ -426,9 +610,18 @@ export default function App() {
             </div>
           ) : (
             <div>
-              <button className="btn-cancel" style={{ textAlign: 'left', marginBottom: '8px' }} onClick={() => setSelectedMyDict(null)}>
-                ← Назад к словарям
-              </button>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <button className="btn-cancel" style={{ textAlign: 'left', width: 'auto', padding: '6px 0' }} onClick={() => setSelectedMyDict(null)}>
+                  ← Назад к словарям
+                </button>
+                <button
+                  className="search-btn"
+                  style={{ padding: '6px 12px', fontSize: '13px' }}
+                  onClick={() => startLearning(selectedMyDict.id)}
+                >
+                  🎓 Учить этот словарь
+                </button>
+              </div>
               <h2 style={{ marginBottom: '12px' }}>{selectedMyDict.title}</h2>
               <div className="senses-list">
                 {selectedMyDict.words.map((w) => (
@@ -445,7 +638,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Каталог */}
+      {/* Вкладка 4: Каталог */}
       {!isTesting && tab === 'catalog' && (
         <div>
           {!selectedSysDict ? (
