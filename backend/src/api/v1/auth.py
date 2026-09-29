@@ -1,11 +1,18 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.config import settings
 from src.database import get_db
-from src.models.user import User
 from src.schemas.auth import TelegramAuthRequest, UserResponse
-from src.services.auth_service import validate_telegram_init_data
+from src.services.auth_service import (
+    extract_telegram_id,
+    validate_telegram_init_data,
+)
+from src.services.user_service import get_or_create_user
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -19,39 +26,37 @@ async def authenticate_telegram(
     payload: TelegramAuthRequest,
     db: AsyncSession = Depends(get_db),
 ):
+    if not settings.BOT_TOKEN:
+        logger.error("BOT_TOKEN is not configured; cannot authenticate requests")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Server authentication is not configured",
+        )
+
     tg_user = validate_telegram_init_data(
         init_data_raw=payload.init_data,
         bot_token=settings.BOT_TOKEN,
     )
-    if not tg_user or "id" not in tg_user:
+    telegram_id = extract_telegram_id(tg_user)
+    if telegram_id is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired Telegram initData signature",
         )
 
-    telegram_id = int(tg_user["id"])
-    first_name = tg_user.get("first_name", "Anonymous")
-    last_name = tg_user.get("last_name")
-    username = tg_user.get("username")
-
-    stmt = select(User).where(User.telegram_id == telegram_id)
-    result = await db.execute(stmt)
-    user = result.scalar_one_or_none()
-
-    if user:
-        user.first_name = first_name
-        user.last_name = last_name
-        user.username = username
-    else:
-        user = User(
+    try:
+        return await get_or_create_user(
+            db,
             telegram_id=telegram_id,
-            first_name=first_name,
-            last_name=last_name,
-            username=username,
+            first_name=tg_user.get("first_name", "Anonymous"),
+            last_name=tg_user.get("last_name"),
+            username=tg_user.get("username"),
+            refresh_profile=True,
         )
-        db.add(user)
-
-    await db.commit()
-    await db.refresh(user)
-
-    return user
+    except SQLAlchemyError:
+        await db.rollback()
+        logger.exception("Database error while authenticating Telegram user")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Authentication is temporarily unavailable",
+        )

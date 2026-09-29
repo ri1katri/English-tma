@@ -1,9 +1,20 @@
 from typing import Optional
+
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    BOT_TOKEN: str = "dummy_token"
+    # Токен Telegram-бота. Обязателен: без него нельзя проверить подпись initData.
+    # Значения по умолчанию нет намеренно — backend не стартует без BOT_TOKEN
+    # (см. lifespan в main.py), а get_current_user отвечает 500 «не настроено».
+    BOT_TOKEN: str = ""
+
+    # Только для локальной разработки в браузере (вне Telegram).
+    # По умолчанию ВЫКЛЮЧЕНО. Никогда не включать в production.
+    DEV_AUTH_BYPASS: bool = False
+    DEV_AUTH_TELEGRAM_ID: int = 999999999
+
     DATABASE_URL: Optional[str] = None
 
     POSTGRES_USER: str = "postgres"
@@ -17,6 +28,12 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
     )
+
+    @field_validator("BOT_TOKEN", mode="before")
+    @classmethod
+    def _strip_bot_token(cls, value):
+        # Случайный пробел/перевод строки в переменной окружения ломает HMAC.
+        return value.strip() if isinstance(value, str) else value
 
     @property
     def database_url(self) -> str:

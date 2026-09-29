@@ -22,7 +22,9 @@ def validate_telegram_init_data(
     7. Проверка auth_date на срок давности (max_age_seconds).
     8. Возврат распарсенного словаря пользователя Telegram.
     """
-    if not init_data_raw:
+    # Без токена подпись проверить невозможно — считаем данные невалидными.
+    # (Пустой токен нельзя превращать в «известный всем» секрет.)
+    if not init_data_raw or not bot_token:
         return None
 
     try:
@@ -78,3 +80,16 @@ def validate_telegram_init_data(
         return None
 
     return user_dict
+
+
+def extract_telegram_id(tg_user: Any) -> Optional[int]:
+    """
+    Достаёт числовой Telegram ID из уже проверенного (по подписи) объекта user.
+    Возвращает None, если структура неожиданная.
+    """
+    if not isinstance(tg_user, dict):
+        return None
+    raw_id = tg_user.get("id")
+    if isinstance(raw_id, bool) or not isinstance(raw_id, int) or raw_id <= 0:
+        return None
+    return raw_id

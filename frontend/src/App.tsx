@@ -126,10 +126,25 @@ export default function App() {
       const res = await fetch(`${API_BASE}/api/v1/words/search?query=${encodeURIComponent(target)}`, {
         headers: getHeaders(),
       })
-      if (res.status === 404) {
-        setNotFoundQuery(target)
-      } else if (!res.ok) {
-        throw new Error(`Ошибка: ${res.status}`)
+      if (!res.ok) {
+        // Бэкенд отвечает { detail: { code, message } }: по code отличаем
+        // «слово не найдено» от «словарный сервис временно недоступен».
+        let code: string | null = null
+        try {
+          const body = await res.json()
+          code = body?.detail?.code ?? null
+        } catch {
+          code = null
+        }
+        if (code === 'word_not_found') {
+          setNotFoundQuery(target)
+        } else if (code === 'provider_unavailable') {
+          setError('Словарный сервис временно недоступен. Попробуйте ещё раз через минуту.')
+        } else if (code === 'invalid_input') {
+          setError('Введите одно английское слово латинскими буквами.')
+        } else {
+          throw new Error(`Ошибка: ${res.status}`)
+        }
       } else {
         const data: WordSearchResult = await res.json()
         setResult(data)
@@ -477,8 +492,19 @@ export default function App() {
                       <span className="pos-badge">{s.part_of_speech}</span>
                       {s.transcription && <span className="transcription">{s.transcription}</span>}
                     </div>
-                    <div className="translations">{s.translations_ru.join(', ')}</div>
+                    {s.translations_ru.length > 0 ? (
+                      <div className="translations">{s.translations_ru.join(', ')}</div>
+                    ) : (
+                      <div style={{ fontSize: '13px', opacity: 0.6, margin: '4px 0' }}>
+                        Русский перевод пока недоступен
+                      </div>
+                    )}
                     <div className="definition">{s.definition_en}</div>
+                    {s.synonyms.length > 0 && (
+                      <div style={{ fontSize: '13px', opacity: 0.75, marginTop: '4px' }}>
+                        Synonyms: {s.synonyms.join(', ')}
+                      </div>
+                    )}
                     {s.example_en && (
                       <div className="example-box">
                         <div className="example-en">“{s.example_en}”</div>

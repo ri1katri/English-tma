@@ -1,3 +1,6 @@
+import logging
+from contextlib import asynccontextmanager
+
 from fastapi import Depends, FastAPI, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
@@ -10,11 +13,33 @@ from src.api.v1.placement import router as placement_router
 from src.api.v1.system_dictionaries import router as sys_dict_router
 from src.api.v1.users import router as users_router
 from src.api.v1.words import router as words_router
+from src.config import settings
 from src.database import get_db
+
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    # Fail fast: без BOT_TOKEN нельзя проверить подпись Telegram initData,
+    # поэтому сервис не должен подниматься «наполовину».
+    if not settings.BOT_TOKEN:
+        raise RuntimeError(
+            "BOT_TOKEN is not set. Configure the BOT_TOKEN environment variable "
+            "(Telegram bot token from @BotFather) before starting the backend."
+        )
+    if settings.DEV_AUTH_BYPASS:
+        logger.warning(
+            "DEV_AUTH_BYPASS is ENABLED: requests without valid Telegram auth "
+            "are treated as a dev user. Never use this in production."
+        )
+    yield
+
 
 app = FastAPI(
     title="English TMA API MVP",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
