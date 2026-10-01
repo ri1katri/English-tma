@@ -109,22 +109,47 @@ async def get_learning_session(
 
     for word in selected_words:
         sense = word.senses[0] if word.senses else None
-        if not sense or not sense.translations_ru:
+        # definition_en обязательно (NOT NULL) для любого сохранённого sense, поэтому
+        # этот if — по сути только "нет ни одного sense вообще". translations_ru
+        # больше не требуем: слова из внешнего поиска (Free Dictionary API/Wiktionary)
+        # не дают русский перевод, и раньше такие слова здесь просто пропускались,
+        # поэтому никогда не попадали в сессию обучения.
+        if not sense or not sense.definition_en:
             continue
 
-        chosen_type = random.choice(exercise_types)
-        if chosen_type == "sentence_reorder" and not sense.example_en:
-            chosen_type = random.choice(["multiple_choice", "letter_scramble", "missing_letters"])
+        has_translation = bool(sense.translations_ru)
+        if has_translation:
+            chosen_type = random.choice(exercise_types)
+            if chosen_type == "sentence_reorder" and not sense.example_en:
+                chosen_type = random.choice(["multiple_choice", "letter_scramble", "missing_letters"])
+        else:
+            # Без русского перевода доступен только multiple_choice — единственный
+            # тип, который умеет обходиться без translations_ru (см. ветку ниже) и
+            # единственный, который сейчас реально рендерит фронтенд (options, а не tokens).
+            chosen_type = "multiple_choice"
 
         if chosen_type == "multiple_choice":
-            correct_trans = sense.translations_ru[0]
-            distractor_pool = [
-                pw.senses[0].translations_ru[0]
-                for pw in pool_words
-                if pw.id != word.id and pw.senses and pw.senses[0].translations_ru
-            ]
+            if has_translation:
+                # Существующее поведение не меняется: слово на английском -> выбрать
+                # правильный русский перевод из вариантов.
+                correct_answer = sense.translations_ru[0]
+                distractor_pool = [
+                    pw.senses[0].translations_ru[0]
+                    for pw in pool_words
+                    if pw.id != word.id and pw.senses and pw.senses[0].translations_ru
+                ]
+            else:
+                # Перевода нет: слово на английском -> выбрать правильное английское
+                # определение из вариантов. Та же форма карточки (prompt_main/options/
+                # target_answer), поэтому фронтенду не нужно ничего знать про этот случай.
+                correct_answer = sense.definition_en
+                distractor_pool = [
+                    pw.senses[0].definition_en
+                    for pw in pool_words
+                    if pw.id != word.id and pw.senses and pw.senses[0].definition_en
+                ]
             sampled = random.sample(distractor_pool, min(3, len(distractor_pool))) if distractor_pool else []
-            options = list(set([correct_trans] + sampled))
+            options = list(set([correct_answer] + sampled))
             while len(options) < 4:
                 options.append(f"Вариант {len(options) + 1}")
             random.shuffle(options)
@@ -135,7 +160,7 @@ async def get_learning_session(
                     exercise_type="multiple_choice",
                     prompt_main=word.lemma,
                     prompt_sub=f"[{sense.transcription}] • {sense.part_of_speech}" if sense.transcription else sense.part_of_speech,
-                    target_answer=correct_trans,
+                    target_answer=correct_answer,
                     options=options[:4],
                     tokens=[],
                 )
